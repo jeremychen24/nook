@@ -1,7 +1,9 @@
 import { state, update, subscribe, on, replaceState, exportState } from './store.js';
 import * as timer from './timer.js';
-import { renderTasks, bindTasks, activeTask } from './tasks.js';
-import { unlock, chime } from './sounds.js';
+import { renderTasks, bindTasks, activeTask, addNote, removeNote, noteToTask } from './tasks.js';
+import { unlock, chime, playAmbient, setVolume } from './sounds.js';
+import { computeStats, fmtMinutes, fmtHour } from './stats.js';
+import { weekChart, classChart, hourChart } from './charts.js';
 import { SCENES, mountScene, pauseScene, resumeScene, sceneThumbnail } from './scenes/index.js';
 import { lockView, armFaceDown, release, syncWakeLock, onLockChange, canStayAwake } from './lock.js';
 import { award, wilt, water, buy, place, owns, priceOf, decorFor, switchScene, WATER_COST } from './rewards.js';
@@ -19,6 +21,7 @@ function show(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === `view-${view}`));
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   syncSceneMotion();
+  renderStats();
 }
 
 // The scene only animates when it can be seen.
@@ -60,6 +63,17 @@ function renderFocus() {
   chip.textContent = task ? (task.cls ? `${task.cls} · ${task.name}` : task.name) : 'Pick a task';
   chip.classList.toggle('set', !!task);
 
+  // Breaks: an off-screen suggestion, and any thoughts parked during focus.
+  const onBreak = t.phase !== 'focus';
+  const coach = $('#coach');
+  coach.hidden = !onBreak;
+  if (onBreak) coach.textContent = breakTip(t);
+  const notes = state.notes.length;
+  $('#notesChip').hidden = !onBreak || !notes;
+  $('#notesChip').textContent = `${notes} parked ${notes === 1 ? 'thought' : 'thoughts'}`;
+  chip.hidden = onBreak && notes > 0;
+  $('#noteBtn').hidden = onBreak;
+
   // The mode can only change between sessions, and only matters for focus.
   const picker = $('#modePicker');
   picker.hidden = t.phase !== 'focus';
@@ -70,6 +84,24 @@ function renderFocus() {
 
   renderLock();
   renderTime();
+}
+
+const BREAK_TIPS = [
+  'Stand up and stretch',
+  'Refill your water',
+  'Look out a window for a bit',
+  'Take five slow breaths',
+  'Walk around the room',
+  'Roll your shoulders and neck',
+  'Rest your eyes for a minute',
+  'Tidy your desk',
+];
+const LONG_BREAK_TIPS = ['Take a short walk outside', 'Get a snack', 'Step away from every screen', 'Stretch properly for a few minutes'];
+
+// Same tip for the whole break, a different one next break.
+function breakTip(t) {
+  const tips = t.phase === 'long' ? LONG_BREAK_TIPS : BREAK_TIPS;
+  return tips[(t.cycle + Math.floor(t.cycle / tips.length)) % tips.length];
 }
 
 const LOCK_MSG = { armed: 'Flip your phone face-down to start', lifted: 'Paused. Flip back to keep going' };
@@ -181,7 +213,8 @@ function sceneEnv(sceneId) {
   const today = state.sessions.filter(s => s.ok && s.end >= midnight).length;
   const t = state.timer;
   const progress = t.phase === 'focus' && t.status !== 'idle' ? 1 - timer.remaining() / t.length : 0;
-  return { decor: state.decor[sceneId] ?? {}, wilted: state.wilted, info: { today, progress } };
+  const { sky, rain, sound } = state.settings;
+  return { decor: state.decor[sceneId] ?? {}, wilted: state.wilted, info: { today, progress }, sky, rain: rain || sound === 'rain' };
 }
 
 function syncScene() {
@@ -194,18 +227,17 @@ function syncScene() {
 // Decorate sheet
 
 const COIN = $('.coin').outerHTML;
+const SKIES = [['auto', 'Auto'], ['dawn', 'Dawn'], ['day', 'Day'], ['sunset', 'Sunset'], ['dusk', 'Dusk'], ['night', 'Night']];
 let pending = null; // a tapped scene or item that isn't bought yet: { slot?, id }
 const thumbs = {};
 
 function thumb(id) {
+  if (SCENES[id]) return (thumbs[`${id}:${state.settings.sky}`] ??= sceneThumbnail(id, state.settings.sky));
   if (!thumbs[id]) {
-    if (SCENES[id]) thumbs[id] = sceneThumbnail(id);
-    else {
-      const item = ITEMS[id];
-      const canvas = makeCanvas(item.w, item.h);
-      item.draw(new Painter(canvas), 0, 0);
-      thumbs[id] = canvas.toDataURL();
-    }
+    const item = ITEMS[id];
+    const canvas = makeCanvas(item.w, item.h);
+    item.draw(new Painter(canvas), 0, 0);
+    thumbs[id] = canvas.toDataURL();
   }
   return thumbs[id];
 }
@@ -251,6 +283,10 @@ function renderRoom() {
     .map(([id, s]) => tile(id, s.name, { on: id === state.scene, attrs: {} }))
     .join('');
   $('#sceneBuy').innerHTML = pending && !pending.slot ? buyButton(pending.id) : '';
+  $('#skyPicker').innerHTML = SKIES
+    .map(([id, name]) => `<button data-sky="${id}" class="${id === state.settings.sky ? 'on' : ''}">${name}</button>`)
+    .join('');
+  $('#rainToggle').checked = state.settings.rain;
 
   const decor = decorFor(state.scene);
   $('#slotRows').innerHTML = SCENES[state.scene].slots.map(slot => {
@@ -283,10 +319,15 @@ $('#room').addEventListener('click', e => {
   if (e.target === e.currentTarget) $('#room').hidden = true; // tap above the sheet
 });
 
+$('#rainToggle').addEventListener('change', e => timer.setSetting('rain', e.target.checked));
+
 $('#room .room-card').addEventListener('click', e => {
   const pick = e.target.closest('[data-pick]');
   const buyBtn = e.target.closest('[data-buy]');
-  if (e.target.closest('#waterBtn')) {
+  const sky = e.target.closest('[data-sky]');
+  if (sky) {
+    timer.setSetting('sky', sky.dataset.sky);
+  } else if (e.target.closest('#waterBtn')) {
     if (water()) toast('Plant watered');
   } else if (buyBtn) {
     const id = buyBtn.dataset.buy;
@@ -310,6 +351,144 @@ $('#room .room-card').addEventListener('click', e => {
     }
   }
 });
+
+// Sound sheet
+
+const SOUND_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">';
+const SOUNDS = [
+  ['off', 'Off', `${SOUND_ICON}<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l4 6M21 9l-4 6"/></svg>`],
+  ['rain', 'Rain', `${SOUND_ICON}<path d="M7 15a4 4 0 1 1 1-7.9A5 5 0 0 1 18 9a3 3 0 0 1 0 6z"/><path d="M8 18l-1 2M12 18l-1 2M16 18l-1 2"/></svg>`],
+  ['brown', 'Brown noise', `${SOUND_ICON}<path d="M3 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0"/></svg>`],
+  ['fire', 'Fire', `${SOUND_ICON}<path d="M12 21c-4 0-6-3-6-6 0-4 4-6 4-10 3 2 4 4 4 6 1-1 2-2 2-3 2 2 2 4 2 7 0 3-2 6-6 6z"/></svg>`],
+];
+
+function renderSound() {
+  const [, name, icon] = SOUNDS.find(([id]) => id === state.settings.sound) ?? SOUNDS[0];
+  $('#soundIcon').innerHTML = icon;
+  $('#soundName').textContent = state.settings.sound === 'off' ? '' : name;
+  if ($('#soundSheet').hidden) return;
+  $('#soundTiles').innerHTML = SOUNDS
+    .map(([id, label, svg]) => `<button class="tile ${id === state.settings.sound ? 'on' : ''}" data-sound="${id}"><span class="art">${svg}</span><span>${label}</span></button>`)
+    .join('');
+  $('#volume').value = state.settings.volume;
+}
+
+$('#soundPill').addEventListener('click', () => {
+  $('#soundSheet').hidden = false;
+  renderSound();
+});
+
+$('#soundTiles').addEventListener('click', e => {
+  const btn = e.target.closest('[data-sound]');
+  if (!btn) return;
+  unlock();
+  playAmbient(btn.dataset.sound);
+  timer.setSetting('sound', btn.dataset.sound);
+});
+
+$('#volume').addEventListener('input', e => {
+  setVolume(Number(e.target.value));
+  timer.setSetting('volume', Number(e.target.value));
+});
+
+// iOS won't play audio until a tap, so a saved sound resumes on the first tap anywhere.
+addEventListener('pointerdown', () => {
+  unlock();
+  setVolume(state.settings.volume);
+  playAmbient(state.settings.sound);
+}, { once: true, capture: true });
+
+// Parked thoughts
+
+function renderNotes() {
+  if ($('#notesSheet').hidden) return;
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  $('#noteList').innerHTML = state.notes.map(n => `<li data-id="${n.id}">
+      <span>${esc(n.text)}</span>
+      <button class="ghost" data-note="task">Make task</button>
+      <button class="icon-btn small" data-note="done" aria-label="Clear">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </button>
+    </li>`).join('');
+  $('#notesEmpty').hidden = state.notes.length > 0;
+}
+
+function openNotes() {
+  $('#notesSheet').hidden = false;
+  renderNotes();
+  // On a break you're here to read them; during focus, to write one.
+  if (state.timer.phase === 'focus') $('#noteText').focus();
+}
+
+$('#noteBtn').addEventListener('click', openNotes);
+$('#notesChip').addEventListener('click', openNotes);
+
+$('#noteForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const text = $('#noteText').value.trim();
+  if (!text) return;
+  addNote(text);
+  $('#noteText').value = '';
+  if (state.timer.phase === 'focus' && state.timer.status !== 'idle') {
+    $('#notesSheet').hidden = true;
+    toast('Parked for your break');
+  }
+});
+
+$('#noteList').addEventListener('click', e => {
+  const id = e.target.closest('li')?.dataset.id;
+  const act = e.target.closest('[data-note]')?.dataset.note;
+  if (act === 'task') noteToTask(id);
+  else if (act === 'done') removeNote(id);
+});
+
+// Any sheet's close button, or a tap on its dimmed backdrop, closes it.
+document.querySelectorAll('.sheet').forEach(sheet => {
+  sheet.addEventListener('click', e => {
+    if (e.target !== sheet && !e.target.closest('[data-close]')) return;
+    sheet.hidden = true;
+    if (sheet.id === 'guide' && !state.seenGuide) update(s => { s.seenGuide = true; });
+  });
+});
+
+// Stats
+
+function renderStats() {
+  if (!$('#view-stats').classList.contains('active')) return;
+  const s = computeStats(state.sessions);
+  $('#statToday').textContent = fmtMinutes(s.todayMin);
+  $('#statWeek').textContent = fmtMinutes(s.weekMin);
+  $('#statStreak').textContent = `${s.streak} ${s.streak === 1 ? 'day' : 'days'}`;
+  $('#statRate').textContent = s.finishRate === null ? '–' : `${Math.round(s.finishRate * 100)}%`;
+
+  const empty = s.finished === 0;
+  $('#statsEmpty').hidden = !empty;
+  $('#statCharts').innerHTML = empty ? '' : `
+    <h2>Last 7 days</h2>
+    <div class="chart">${weekChart(s.days)}<div class="chart-tip" hidden></div></div>
+    ${s.classes.length ? `<h2>By class · 30 days</h2><div class="chart">${classChart(s.classes)}<div class="chart-tip" hidden></div></div>` : ''}
+    <h2>Time of day</h2>
+    <div class="chart">${hourChart(s.hours, s.bestHour)}<div class="chart-tip" hidden></div></div>
+    <p class="caption">You start the most focus around ${fmtHour(s.bestHour)}</p>`;
+}
+
+// Tooltips: hover on a computer, tap on a phone. They add detail; every value is also in the tables.
+function showTip(e) {
+  const target = e.target.closest('[data-tip]');
+  const chart = e.target.closest('.chart');
+  document.querySelectorAll('.chart-tip').forEach(t => { if (!chart || !chart.contains(t)) t.hidden = true; });
+  if (!target || !chart) return;
+  const tip = chart.querySelector('.chart-tip');
+  const box = target.getBoundingClientRect();
+  const frame = chart.getBoundingClientRect();
+  tip.textContent = target.dataset.tip;
+  tip.style.left = `${Math.min(Math.max(box.left + box.width / 2 - frame.left, 40), frame.width - 40)}px`;
+  tip.style.top = `${box.top - frame.top + 8}px`;
+  tip.hidden = false;
+}
+$('#statCharts').addEventListener('pointerover', showTip);
+$('#statCharts').addEventListener('pointerdown', showTip);
+$('#statCharts').addEventListener('pointerleave', () => document.querySelectorAll('.chart-tip').forEach(t => { t.hidden = true; }));
 
 // Settings
 
@@ -364,6 +543,9 @@ function renderAll() {
   renderFocus();
   renderTasks(tasksView);
   renderSettings();
+  renderSound();
+  renderNotes();
+  renderStats();
   renderRoom();
   syncScene();
 }

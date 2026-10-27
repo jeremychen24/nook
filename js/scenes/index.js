@@ -17,11 +17,14 @@ const TIMES = ['dawn', 'day', 'sunset', 'dusk', 'night'];
 const params = new URLSearchParams(globalThis.location?.search ?? '');
 const forcedTod = TIMES.includes(params.get('tod')) ? params.get('tod') : null;
 const forcedScene = SCENES[params.get('scene')] ? params.get('scene') : null;
+const forcedRain = params.get('rain') === '1';
 
 let scene = null;
 let painter = null;
 let anim = null;
-let rain = params.get('rain') === '1';
+
+// The sky setting is 'auto' (follow the clock) or a fixed time of day.
+const skyTime = sky => forcedTod ?? (TIMES.includes(sky) ? sky : timeOfDay());
 
 export function timeOfDay(date = new Date()) {
   const h = date.getHours() + date.getMinutes() / 60;
@@ -32,7 +35,7 @@ export function timeOfDay(date = new Date()) {
   return 'night';
 }
 
-// getEnv(sceneId) supplies what the scene shows from app state: { decor, wilted, info }.
+// getEnv(sceneId) supplies what the scene shows from app state: { decor, wilted, info, sky, rain }.
 export function mountScene(container, id, getEnv = () => ({})) {
   anim?.stop();
   const shown = SCENES[forcedScene ?? id] ? forcedScene ?? id : 'cafe';
@@ -43,7 +46,10 @@ export function mountScene(container, id, getEnv = () => ({})) {
   container.replaceChildren(canvas);
   painter = new Painter(canvas);
   const fps = matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 10;
-  anim = loop(t => scene.render(painter, { t, tod: forcedTod ?? timeOfDay(), rain, ...getEnv(shown) }), fps);
+  anim = loop(t => {
+    const env = getEnv(shown);
+    scene.render(painter, { ...env, t, tod: skyTime(env.sky), rain: forcedRain || !!env.rain });
+  }, fps);
   anim.start();
 }
 
@@ -51,14 +57,9 @@ export const pauseScene = () => anim?.stop();
 export const resumeScene = () => anim?.start();
 
 // A still picture of a scene with its default decorations, as an image URL (for the shop).
-export function sceneThumbnail(id) {
+export function sceneThumbnail(id, sky = 'auto') {
   const s = SCENES[id].create();
   const canvas = makeCanvas(s.W, s.H);
-  s.render(new Painter(canvas), { t: 0, tod: forcedTod ?? timeOfDay(), rain: false, decor: {}, wilted: false });
+  s.render(new Painter(canvas), { t: 0, tod: skyTime(sky), rain: false, decor: {}, wilted: false });
   return canvas.toDataURL();
-}
-
-// Rain follows the rain sound once sounds exist (phase 5).
-export function setRain(on) {
-  rain = on;
 }

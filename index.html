@@ -19,12 +19,20 @@
   <main>
     <section id="view-focus" class="view active">
       <div class="scene" aria-hidden="true"></div>
+      <button class="sound-pill" id="soundPill" aria-label="Sound"><span id="soundIcon"></span><span id="soundName"></span></button>
       <button class="coin-pill" id="coinPill" aria-label="Decorate"><svg class="coin" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#e0b84a" d="M2 0h4v1h1v1h1v4H7v1H6v1H2V7H1V6H0V2h1V1h1z"/><path fill="#f6d77a" d="M2 1h2v1H2zM1 2h1v2H1z"/><path fill="#a8842a" d="M3 3h2v2H3z"/></svg><span id="coinCount">0</span></button>
       <div class="focus-ui">
         <div class="phase-label" id="phaseLabel">Focus</div>
         <div class="time" id="time">25:00</div>
         <div class="dots" id="dots"></div>
-        <button class="task-chip" id="taskChip">Pick a task</button>
+        <p class="coach" id="coach" hidden></p>
+        <div class="chip-row">
+          <button class="task-chip" id="taskChip">Pick a task</button>
+          <button class="task-chip notes-chip" id="notesChip" hidden></button>
+          <button class="icon-btn note-btn" id="noteBtn" aria-label="Park a thought">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>
+          </button>
+        </div>
         <div class="mode" id="modePicker">
           <button data-mode="stand">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>
@@ -61,6 +69,29 @@
       <div class="tags" id="classFilter"></div>
       <ul class="task-list" id="taskList"></ul>
       <p class="empty" id="tasksEmpty">No tasks yet</p>
+
+      <h2>Exams</h2>
+      <form id="examForm" class="card add-task" autocomplete="off">
+        <input id="examName" placeholder="Exam" maxlength="60" required>
+        <div class="row">
+          <input id="examClass" placeholder="Class" list="classList" maxlength="24">
+          <input id="examDate" type="date" required>
+          <button class="primary small" type="submit">Add</button>
+        </div>
+      </form>
+      <ul class="task-list" id="examList"></ul>
+    </section>
+
+    <section id="view-stats" class="view">
+      <h1>Stats</h1>
+      <div class="stat-grid">
+        <div class="stat"><span>Today</span><b id="statToday">0m</b></div>
+        <div class="stat"><span>This week</span><b id="statWeek">0m</b></div>
+        <div class="stat"><span>Streak</span><b id="statStreak">0 days</b></div>
+        <div class="stat"><span>Finished</span><b id="statRate">–</b></div>
+      </div>
+      <div id="statCharts"></div>
+      <p class="empty" id="statsEmpty">Finish a focus session to see your stats</p>
     </section>
 
     <section id="view-settings" class="view">
@@ -107,6 +138,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".6"/><circle cx="4.5" cy="12" r=".6"/><circle cx="4.5" cy="18" r=".6"/></svg>
       Tasks
     </button>
+    <button data-view="stats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/></svg>
+      Stats
+    </button>
     <button data-view="settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
       Settings
@@ -148,7 +183,40 @@
       </div>
       <div class="row-head"><h2>Scene</h2><span id="sceneBuy"></span></div>
       <div class="tiles" id="sceneTiles"></div>
+      <div class="row-head"><h2>Sky</h2><label class="inline-switch">Rain <input type="checkbox" id="rainToggle" class="switch"></label></div>
+      <div class="pills" id="skyPicker"></div>
       <div id="slotRows"></div>
+    </div>
+  </div>
+
+  <div class="sheet room" id="soundSheet" hidden>
+    <div class="sheet-card" role="dialog" aria-labelledby="soundTitle">
+      <div class="room-head">
+        <h1 id="soundTitle">Sound</h1>
+        <button class="icon-btn small" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>
+        </button>
+      </div>
+      <div class="tiles sound-tiles" id="soundTiles"></div>
+      <label class="volume">Volume <input type="range" id="volume" min="0" max="1" step="0.05"></label>
+      <p class="muted">Rain also makes it rain in your scene. The silent switch mutes sound on iPhone.</p>
+    </div>
+  </div>
+
+  <div class="sheet" id="notesSheet" hidden>
+    <div class="sheet-card" role="dialog" aria-labelledby="notesTitle">
+      <div class="room-head">
+        <h1 id="notesTitle">Parked thoughts</h1>
+        <button class="icon-btn small" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>
+        </button>
+      </div>
+      <form class="note-form" id="noteForm" autocomplete="off">
+        <input id="noteText" placeholder="What's on your mind?" maxlength="120">
+        <button class="primary small" type="submit">Park</button>
+      </form>
+      <ul class="note-list" id="noteList"></ul>
+      <p class="muted" id="notesEmpty">Jot down stray thoughts while you focus, then deal with them on your break.</p>
     </div>
   </div>
 

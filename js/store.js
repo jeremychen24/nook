@@ -5,7 +5,10 @@ const KEY = 'nook:v1';
 export function defaults() {
   return {
     version: 1,
-    settings: { focusMin: 25, shortMin: 5, longMin: 15, longEvery: 4, autoStart: false, mode: 'stand' },
+    settings: {
+      focusMin: 25, shortMin: 5, longMin: 15, longEvery: 4, autoStart: false, mode: 'stand',
+      sky: 'auto', rain: false, sound: 'off', volume: 0.6,
+    },
     timer: { phase: 'focus', status: 'idle', length: 25 * 60000, remaining: 25 * 60000, endsAt: 0, cycle: 0, leftAt: 0, seenAt: 0 },
     tasks: [],
     activeTaskId: null,
@@ -16,6 +19,8 @@ export function defaults() {
     owned: [], // ids of bought decorations and scenes
     decor: {}, // { sceneId: { slotId: itemId } }, on top of each scene's defaults
     wilted: false,
+    notes: [], // thoughts parked during focus: { id, text, at }
+    exams: [], // { id, name, cls, date: 'YYYY-MM-DD', goal, createdAt }
   };
 }
 

@@ -325,6 +325,111 @@ main { flex: 1; position: relative; overflow: hidden; }
 .tile.scene img { width: 92px; border-radius: 6px; image-rendering: auto; }
 .tile.locked img { filter: grayscale(.5) brightness(.65); }
 
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pills button {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 13px;
+}
+.pills button.on { background: var(--text); color: var(--bg); }
+.inline-switch { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+
+/* Sound */
+
+.sound-pill {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--safe-top) + 10px);
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+  background: rgba(14, 15, 18, .6);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  font-size: 13px;
+}
+.sound-pill svg, .sound-tiles svg { width: 18px; height: 18px; display: block; }
+.sound-pill span:empty { display: none; }
+.sound-tiles { margin-top: 14px; }
+.sound-tiles .tile { width: 84px; }
+.sound-tiles .art { height: 32px; }
+.sound-tiles svg { width: 24px; height: 24px; }
+.volume { display: flex; align-items: center; gap: 12px; margin: 18px 0 12px; color: var(--muted); font-size: 14px; }
+.volume input { flex: 1; padding: 0; background: none; accent-color: var(--accent); }
+
+/* Break prompt and parked thoughts */
+
+.coach { margin: -4px 0 0; color: var(--muted); font-size: 14px; text-align: center; }
+.chip-row { display: flex; align-items: center; gap: 8px; max-width: 100%; }
+.chip-row .task-chip { min-width: 0; }
+.note-btn { width: 36px; height: 36px; }
+.note-btn svg { width: 17px; height: 17px; }
+.notes-chip { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+
+.note-form { display: flex; gap: 8px; margin-top: 14px; }
+.note-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.note-list li { display: flex; align-items: center; gap: 8px; padding: 8px 6px 8px 14px; border-radius: 12px; background: var(--surface-2); }
+.note-list li span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.note-list .ghost { padding: 6px 10px; font-size: 13px; background: var(--surface); }
+#notesEmpty { margin-top: 12px; }
+
+/* Exams */
+
+#examClass, #examDate { flex: 1; min-width: 0; width: auto; }
+#examDate { color-scheme: dark; }
+.exam {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 6px 10px 12px;
+  background: var(--surface);
+  border-radius: 14px;
+}
+.exam .body { flex: 1; min-width: 0; }
+.exam .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.exam .meta { display: flex; gap: 8px; align-items: center; margin-top: 4px; font-size: 13px; color: var(--muted); }
+.exam-days { width: 44px; flex: none; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.exam-days b { font-size: 20px; font-weight: 600; }
+.exam-days span { font-size: 11px; color: var(--muted); }
+.exam.done { opacity: .5; }
+.exam .icon-btn.small { width: 28px; font-size: 16px; color: var(--muted); }
+
+/* Stats */
+
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { padding: 12px 14px; border-radius: 14px; background: var(--surface); }
+.stat span { display: block; color: var(--muted); font-size: 13px; }
+.stat b { display: block; margin-top: 2px; font-size: 24px; font-weight: 600; }
+.chart { position: relative; padding: 14px 12px 10px; border-radius: 14px; background: var(--surface); }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart svg .num { font-variant-numeric: tabular-nums; }
+.chart-tip {
+  position: absolute;
+  z-index: 1;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 6px));
+}
+.chart-tip[hidden] { display: none; }
+.caption { margin: 8px 2px 0; color: var(--muted); font-size: 13px; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .primary {
   background: var(--accent);
   color: var(--accent-ink);
@@ -496,7 +601,7 @@ main { flex: 1; position: relative; overflow: hidden; }
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 4px 18px;
+  padding: 4px 10px;
   font-size: 11px;
   color: var(--muted);
 }
