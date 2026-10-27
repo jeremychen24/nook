@@ -19,6 +19,7 @@
   <main>
     <section id="view-focus" class="view active">
       <div class="scene" aria-hidden="true"></div>
+      <button class="coin-pill" id="coinPill" aria-label="Decorate"><svg class="coin" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#e0b84a" d="M2 0h4v1h1v1h1v4H7v1H6v1H2V7H1V6H0V2h1V1h1z"/><path fill="#f6d77a" d="M2 1h2v1H2zM1 2h1v2H1z"/><path fill="#a8842a" d="M3 3h2v2H3z"/></svg><span id="coinCount">0</span></button>
       <div class="focus-ui">
         <div class="phase-label" id="phaseLabel">Focus</div>
         <div class="time" id="time">25:00</div>
@@ -85,9 +86,6 @@
         <div class="setting"><span>Guided Access</span><button class="ghost" id="guideBtn">How to</button></div>
       </div>
 
-      <h2>Scene</h2>
-      <div class="chips" id="scenePicker"></div>
-
       <h2>Data</h2>
       <div class="card">
         <div class="setting"><span>Backup</span>
@@ -132,6 +130,25 @@
       </ol>
       <p class="muted">To get out, triple-click again and enter the passcode.</p>
       <button class="primary" id="guideDone">Got it</button>
+    </div>
+  </div>
+
+  <div class="sheet room" id="room" hidden>
+    <div class="sheet-card room-card" role="dialog" aria-labelledby="roomTitle">
+      <div class="room-head">
+        <h1 id="roomTitle">Decorate</h1>
+        <span class="balance"><svg class="coin" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#e0b84a" d="M2 0h4v1h1v1h1v4H7v1H6v1H2V7H1V6H0V2h1V1h1z"/><path fill="#f6d77a" d="M2 1h2v1H2zM1 2h1v2H1z"/><path fill="#a8842a" d="M3 3h2v2H3z"/></svg><span id="roomCoins">0</span></span>
+        <button class="icon-btn small" id="roomClose" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>
+        </button>
+      </div>
+      <div class="wilt" id="wiltBanner" hidden>
+        <span>Your plant wilted</span>
+        <button class="ghost" id="waterBtn">Water · 10</button>
+      </div>
+      <div class="row-head"><h2>Scene</h2><span id="sceneBuy"></span></div>
+      <div class="tiles" id="sceneTiles"></div>
+      <div id="slotRows"></div>
     </div>
   </div>
 

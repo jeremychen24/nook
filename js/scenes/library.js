@@ -3,7 +3,7 @@
 
 import { Painter, makeCanvas, seeded } from '../pixel.js';
 import { ITEMS } from '../decor.js';
-import { lightsOn, toner, paintSky, createSkyLife, paintDecor, drawSteam } from './outside.js';
+import { lightsOn, toner, paintSky, createSkyLife, paintDecor, animateDecor } from './outside.js';
 
 const W = 180;
 const H = 196;
@@ -14,13 +14,13 @@ const GLASS = { x: CX - RADIUS, y: ARCH_BASE - RADIUS, w: RADIUS * 2, h: 102 };
 const BOARDS = [30, 54, 78, 102, 126];
 const LAMP_X = 146;
 
-const SLOTS = [
-  { id: 'shelf-l', x: 24, y: 78 },
-  { id: 'shelf-r', x: 156, y: 102 },
-  { id: 'desk-l', x: 40, y: 153 },
-  { id: 'desk-r', x: 118, y: 153 },
+export const SLOTS = [
+  { id: 'shelf-l', kind: 'shelf', label: 'Left shelf', x: 24, y: 78 },
+  { id: 'shelf-r', kind: 'shelf', label: 'Right shelf', x: 156, y: 102 },
+  { id: 'desk-l', kind: 'desk', label: 'Desk left', x: 40, y: 153 },
+  { id: 'desk-r', kind: 'desk', label: 'Desk right', x: 118, y: 153 },
 ];
-const DEFAULTS = { 'shelf-l': 'globe', 'shelf-r': 'plant', 'desk-l': 'tea', 'desk-r': 'books' };
+export const DEFAULTS = { 'shelf-l': 'globe', 'shelf-r': 'plant', 'desk-l': 'tea', 'desk-r': 'books' };
 // Gaps left in the shelves for the shelf slots: [board y, from x, to x]
 const GAPS = [[78, 13, 35], [102, 145, 167]];
 const SKY_SPOTS = { sunset: [72, 94], dawn: [108, 94], moon: [104, 40] };
@@ -49,9 +49,9 @@ export function createLibrary() {
       outsideKey = key;
     }
     const decor = { ...DEFAULTS, ...env.decor };
-    const decorKey = JSON.stringify(decor);
+    const decorKey = JSON.stringify(decor) + env.wilted;
     if (decorKey !== interiorKey) {
-      paintInterior(new Painter(interior), decor);
+      paintInterior(new Painter(interior), decor, env.wilted);
       interiorKey = decorKey;
     }
 
@@ -65,7 +65,7 @@ export function createLibrary() {
     drawLampLight(p, env.t);
     drawPageTurn(p, env.t);
     drawMotes(p);
-    drawSteam(p, SLOTS, decor, ITEMS, env.t);
+    animateDecor(p, SLOTS, decor, ITEMS, env.t);
   }
 
   // Outside: a park with hills, two trees, a small house and a lamp post.
@@ -103,7 +103,7 @@ export function createLibrary() {
 
   // Inside
 
-  function paintInterior(p, decor) {
+  function paintInterior(p, decor, wilted) {
     p.clear();
     // Wood paneling
     p.rect(0, 0, W, 146, '#33201a');
@@ -171,7 +171,7 @@ export function createLibrary() {
       p.rect(91, y, 11, 1, '#b8ab90');
     }
 
-    paintDecor(p, SLOTS, decor, ITEMS);
+    paintDecor(p, SLOTS, decor, ITEMS, wilted);
   }
 
   // Calls row(x, y, width) for each row of the arched window shape, grown by `grow` pixels.

@@ -2,8 +2,11 @@ import { state, update, subscribe, on, replaceState, exportState } from './store
 import * as timer from './timer.js';
 import { renderTasks, bindTasks, activeTask } from './tasks.js';
 import { unlock, chime } from './sounds.js';
-import { SCENES, mountScene, pauseScene, resumeScene } from './scenes/index.js';
+import { SCENES, mountScene, pauseScene, resumeScene, sceneThumbnail } from './scenes/index.js';
 import { lockView, armFaceDown, release, syncWakeLock, onLockChange, canStayAwake } from './lock.js';
+import { award, wilt, water, buy, place, owns, priceOf, decorFor, switchScene, WATER_COST } from './rewards.js';
+import { ITEMS } from './decor.js';
+import { Painter, makeCanvas } from './pixel.js';
 
 const $ = sel => document.querySelector(sel);
 const LABELS = { focus: 'Focus', short: 'Short break', long: 'Long break' };
@@ -138,15 +141,23 @@ function toast(msg, ms = 2400) {
   toastTimer = setTimeout(() => el.classList.remove('show'), ms);
 }
 
-on('complete', ({ phase }) => {
+on('complete', ({ phase, session }) => {
   release();
   chime();
-  toast(phase === 'focus' ? 'Focus done' : 'Break over');
+  if (!session) return toast('Break over');
+  const { base, bonus, streak } = award(session);
+  toast(bonus ? `Focus done · +${base + bonus} coins · ${streak}-day streak` : `Focus done · +${base} coins`, 3000);
 });
 
 on('failed', () => {
   release();
-  toast('Session ended: you left Nook', 4000);
+  wilt();
+  toast('Session ended: you left Nook. Your plant wilted', 4000);
+});
+
+on('abandoned', () => {
+  wilt();
+  toast('Your plant wilted');
 });
 
 // Guided Access guide: shown once on iPhone, and from Settings any time.
@@ -163,25 +174,141 @@ $('#guideDone').addEventListener('click', () => {
 
 let mountedScene = null;
 
-// Live numbers for the scene: sessions finished today and how far the current focus has got.
-function sceneInfo() {
+// What the scene shows from app state: decorations, the wilted plant, and live numbers
+// (sessions finished today, how far the current focus has got) for the classroom board.
+function sceneEnv(sceneId) {
   const midnight = new Date().setHours(0, 0, 0, 0);
   const today = state.sessions.filter(s => s.ok && s.end >= midnight).length;
   const t = state.timer;
   const progress = t.phase === 'focus' && t.status !== 'idle' ? 1 - timer.remaining() / t.length : 0;
-  return { today, progress };
+  return { decor: state.decor[sceneId] ?? {}, wilted: state.wilted, info: { today, progress } };
 }
 
 function syncScene() {
   if (state.scene === mountedScene) return;
   mountedScene = state.scene;
-  mountScene($('.scene'), state.scene, sceneInfo);
+  mountScene($('.scene'), state.scene, sceneEnv);
   syncSceneMotion();
 }
 
-$('#scenePicker').addEventListener('click', e => {
-  const btn = e.target.closest('[data-scene]');
-  if (btn) update(s => { s.scene = btn.dataset.scene; });
+// Decorate sheet
+
+const COIN = $('.coin').outerHTML;
+let pending = null; // a tapped scene or item that isn't bought yet: { slot?, id }
+const thumbs = {};
+
+function thumb(id) {
+  if (!thumbs[id]) {
+    if (SCENES[id]) thumbs[id] = sceneThumbnail(id);
+    else {
+      const item = ITEMS[id];
+      const canvas = makeCanvas(item.w, item.h);
+      item.draw(new Painter(canvas), 0, 0);
+      thumbs[id] = canvas.toDataURL();
+    }
+  }
+  return thumbs[id];
+}
+
+function tile(id, name, { on, attrs }) {
+  const owned = owns(id);
+  const item = ITEMS[id];
+  const scale = item ? Math.max(1, Math.min(3, Math.floor(42 / Math.max(item.w, item.h)))) : 0;
+  const size = item ? `width="${item.w * scale}" height="${item.h * scale}"` : '';
+  const isPending = pending?.id === id && (!item || pending.slot === attrs.slot);
+  const classes = ['tile', item ? '' : 'scene', on ? 'on' : '', owned ? '' : 'locked', isPending ? 'pending' : ''].join(' ');
+  return `<button class="${classes}" data-pick="${id}">
+    <span class="art"><img src="${thumb(id)}" alt="" ${size}></span>
+    <span>${name}</span>
+    ${owned ? '' : `<span class="tile-price">${COIN}${priceOf(id)}</span>`}
+  </button>`;
+}
+
+function buyButton(id) {
+  const price = priceOf(id);
+  return state.coins >= price
+    ? `<button class="primary small" data-buy="${id}">Buy · ${price}</button>`
+    : `<button class="primary small" disabled>Need ${price - state.coins} more</button>`;
+}
+
+function renderRoom() {
+  $('#coinCount').textContent = state.coins;
+  if ($('#room').hidden) return;
+  $('#roomCoins').textContent = state.coins;
+  $('#wiltBanner').hidden = !state.wilted;
+  $('#waterBtn').disabled = state.coins < WATER_COST;
+
+  // Rows are rebuilt on every change; keep each row scrolled where it was.
+  const scrolled = {};
+  document.querySelectorAll('#room .tiles').forEach(row => {
+    scrolled[row.closest('[data-slot]')?.dataset.slot ?? 'scenes'] = row.scrollLeft;
+  });
+  const restoreScroll = () => document.querySelectorAll('#room .tiles').forEach(row => {
+    row.scrollLeft = scrolled[row.closest('[data-slot]')?.dataset.slot ?? 'scenes'] ?? 0;
+  });
+
+  $('#sceneTiles').innerHTML = Object.entries(SCENES)
+    .map(([id, s]) => tile(id, s.name, { on: id === state.scene, attrs: {} }))
+    .join('');
+  $('#sceneBuy').innerHTML = pending && !pending.slot ? buyButton(pending.id) : '';
+
+  const decor = decorFor(state.scene);
+  $('#slotRows').innerHTML = SCENES[state.scene].slots.map(slot => {
+    // Owned things first, then cheapest first.
+    const choices = Object.keys(ITEMS)
+      .filter(id => ITEMS[id].fits.includes(slot.kind))
+      .sort((a, b) => owns(b) - owns(a) || priceOf(a) - priceOf(b));
+    const none = `<button class="tile ${decor[slot.id] === 'none' ? 'on' : ''}" data-pick="none"><span class="art">–</span><span>Empty</span></button>`;
+    return `<section data-slot="${slot.id}">
+      <div class="row-head"><h2>${slot.label}</h2>${pending?.slot === slot.id ? buyButton(pending.id) : ''}</div>
+      <div class="tiles">${none}${choices.map(id => tile(id, ITEMS[id].name, { on: decor[slot.id] === id, attrs: { slot: slot.id } })).join('')}</div>
+    </section>`;
+  }).join('');
+  restoreScroll();
+}
+
+function openRoom() {
+  pending = null;
+  const sheet = $('#room');
+  sheet.hidden = false;
+  // Stop the sheet at the bottom of the scene so the decorations stay in view.
+  const sceneBottom = $('.scene').getBoundingClientRect().bottom;
+  $('.room-card').style.maxHeight = `${Math.max(innerHeight * 0.45, innerHeight - sceneBottom + 8)}px`;
+  renderRoom();
+}
+
+$('#coinPill').addEventListener('click', openRoom);
+$('#roomClose').addEventListener('click', () => { $('#room').hidden = true; });
+$('#room').addEventListener('click', e => {
+  if (e.target === e.currentTarget) $('#room').hidden = true; // tap above the sheet
+});
+
+$('#room .room-card').addEventListener('click', e => {
+  const pick = e.target.closest('[data-pick]');
+  const buyBtn = e.target.closest('[data-buy]');
+  if (e.target.closest('#waterBtn')) {
+    if (water()) toast('Plant watered');
+  } else if (buyBtn) {
+    const id = buyBtn.dataset.buy;
+    const target = pending;
+    pending = null;
+    if (buy(id)) {
+      if (target?.slot) place(state.scene, target.slot, id);
+      else switchScene(id);
+      toast(`Bought ${ITEMS[id]?.name ?? SCENES[id].name}`);
+    }
+  } else if (pick) {
+    const id = pick.dataset.pick;
+    const slot = pick.closest('[data-slot]')?.dataset.slot;
+    if (id !== 'none' && !owns(id)) {
+      pending = { slot, id };
+      renderRoom();
+    } else {
+      pending = null;
+      if (slot) place(state.scene, slot, id);
+      else switchScene(id);
+    }
+  }
 });
 
 // Settings
@@ -189,9 +316,6 @@ $('#scenePicker').addEventListener('click', e => {
 function renderSettings() {
   for (const key of Object.keys(STEPS)) $(`[data-value="${key}"]`).textContent = state.settings[key];
   $('#autoStart').checked = state.settings.autoStart;
-  $('#scenePicker').innerHTML = Object.entries(SCENES)
-    .map(([id, s]) => `<button data-scene="${id}" class="${id === state.scene ? 'on' : ''}">${s.name}</button>`)
-    .join('');
 }
 
 $('#view-settings').addEventListener('click', e => {
@@ -240,6 +364,7 @@ function renderAll() {
   renderFocus();
   renderTasks(tasksView);
   renderSettings();
+  renderRoom();
   syncScene();
 }
 
@@ -249,6 +374,8 @@ subscribe(() => {
 });
 onLockChange(renderFocus);
 bindTasks(tasksView);
+// Scenes became something you buy; anyone on a locked one goes back to the café.
+if (!owns(state.scene)) update(s => { s.scene = 'cafe'; });
 timer.checkReturn(); // a session left running when the app was closed
 timer.tick();
 // Face-down sessions need a tap to turn the motion sensor back on, so they resume paused.

@@ -4,7 +4,7 @@
 
 import { Painter, makeCanvas, seeded } from '../pixel.js';
 import { ITEMS } from '../decor.js';
-import { lightsOn, toner, paintSky, createSkyLife, paintDecor, drawSteam } from './outside.js';
+import { lightsOn, toner, paintSky, createSkyLife, paintDecor, animateDecor } from './outside.js';
 
 const W = 180;
 const H = 196;
@@ -14,13 +14,13 @@ const BOARD = { x: 13, y: 33, w: 106, h: 62 };
 const CLOCK = { x: 66, y: 18 };
 const CHALK = '#e8efe6';
 
-const SLOTS = [
-  { id: 'sill', x: 152, y: 120 },
-  { id: 'desk-l', x: 38, y: 153 },
-  { id: 'desk-c', x: 92, y: 153 },
-  { id: 'desk-r', x: 146, y: 153 },
+export const SLOTS = [
+  { id: 'sill', kind: 'shelf', label: 'Windowsill', x: 152, y: 120 },
+  { id: 'desk-l', kind: 'desk', label: 'Desk left', x: 38, y: 153 },
+  { id: 'desk-c', kind: 'desk', label: 'Desk middle', x: 92, y: 153 },
+  { id: 'desk-r', kind: 'desk', label: 'Desk right', x: 146, y: 153 },
 ];
-const DEFAULTS = { sill: 'plant', 'desk-l': 'apple', 'desk-c': 'notebook', 'desk-r': 'pencils' };
+export const DEFAULTS = { sill: 'plant', 'desk-l': 'apple', 'desk-c': 'notebook', 'desk-r': 'pencils' };
 const SKY_SPOTS = { sunset: [144, 82], dawn: [162, 84], moon: [162, 40] };
 
 // Chalk "words" for the progress line: [x, y, width] with a few letter bumps on top.
@@ -63,9 +63,9 @@ export function createClassroom() {
       outsideKey = key;
     }
     const decor = { ...DEFAULTS, ...env.decor };
-    const decorKey = JSON.stringify(decor);
+    const decorKey = JSON.stringify(decor) + env.wilted;
     if (decorKey !== interiorKey) {
-      paintInterior(new Painter(interior), decor);
+      paintInterior(new Painter(interior), decor, env.wilted);
       interiorKey = decorKey;
     }
 
@@ -79,7 +79,7 @@ export function createClassroom() {
     drawChalk(p, env.info ?? { today: 0, progress: 0 });
     drawClock(p);
     drawCeilingLight(p);
-    drawSteam(p, SLOTS, decor, ITEMS, env.t);
+    animateDecor(p, SLOTS, decor, ITEMS, env.t);
   }
 
   // Outside: trees, a fence and a far hill.
@@ -102,7 +102,7 @@ export function createClassroom() {
 
   // Inside
 
-  function paintInterior(p, decor) {
+  function paintInterior(p, decor, wilted) {
     p.clear();
     p.rect(0, 0, W, 104, '#76846f');
     p.alpha(0.12, () => {
@@ -167,7 +167,7 @@ export function createClassroom() {
     p.rect(20, 163, 2, H - 163, '#3a3a36');
     p.rect(W - 22, 163, 2, H - 163, '#3a3a36');
 
-    paintDecor(p, SLOTS, decor, ITEMS);
+    paintDecor(p, SLOTS, decor, ITEMS, wilted);
   }
 
   function drawChalk(p, { today, progress }) {

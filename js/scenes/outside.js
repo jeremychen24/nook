@@ -129,25 +129,21 @@ export function createSkyLife(glass, { starHeight = 34, seed = 11 } = {}) {
   };
 }
 
-// Draws the decorations in their slots (slot x is the item's center, y its bottom).
-export function paintDecor(p, slots, decor, items) {
+// Calls fn(item, x, y) for each decoration with its top-left corner
+// (slot x is the item's center, y its bottom).
+function eachDecor(slots, decor, items, fn) {
   for (const slot of slots) {
     const item = items[decor[slot.id]];
-    if (item) item.draw(p, slot.x - Math.floor(item.w / 2), slot.y - item.h);
+    if (item) fn(item, slot.x - Math.floor(item.w / 2), slot.y - item.h);
   }
 }
 
-// Steam rising from any decoration that has a steam point (mugs, tea).
-export function drawSteam(p, slots, decor, items, t) {
-  for (const slot of slots) {
-    const item = items[decor[slot.id]];
-    if (!item?.steam) continue;
-    const sx = slot.x - Math.floor(item.w / 2) + item.steam[0];
-    const sy = slot.y - item.h + item.steam[1];
-    for (let i = 0; i < 3; i++) {
-      const k = (t * 0.45 + i / 3) % 1;
-      const x = sx + Math.round(Math.sin(k * 6 + i * 2) * 1.5);
-      p.alpha((1 - k) * 0.55, () => p.rect(x, sy - Math.round(k * 14), 1, 2, '#f4ece0'));
-    }
-  }
+// Draws the decorations into a scene's cached interior. Wilted items use their wilted look.
+export function paintDecor(p, slots, decor, items, wilted) {
+  eachDecor(slots, decor, items, (item, x, y) => (wilted && item.wilted ? item.wilted : item).draw(p, x, y));
+}
+
+// Runs each frame for decorations that move: steam, a candle flame, a fish.
+export function animateDecor(p, slots, decor, items, t) {
+  eachDecor(slots, decor, items, (item, x, y) => item.animate?.(p, x, y, t));
 }

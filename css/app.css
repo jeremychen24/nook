@@ -231,6 +231,100 @@ main { flex: 1; position: relative; overflow: hidden; }
 .sheet-card .primary { width: 100%; margin-top: 8px; }
 .muted { color: var(--muted); font-size: 14px; margin: 0; }
 
+/* Coins and the Decorate sheet */
+
+.coin { width: 14px; height: 14px; flex: none; }
+
+.coin-pill {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--safe-top) + 10px);
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+  background: rgba(14, 15, 18, .6);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* No dimming, so the scene above stays visible while you decorate. */
+.sheet.room { background: transparent; }
+.room-card {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-top: 18px;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, .45);
+}
+.room-head { display: flex; align-items: center; gap: 12px; }
+.room-head h1 { flex: 1; margin: 0; font-size: 20px; }
+.balance { display: flex; align-items: center; gap: 6px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.wilt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 12px;
+  background: #2c2620;
+  color: #e0c27a;
+  font-size: 14px;
+}
+.wilt[hidden] { display: none; }
+.ghost:disabled { opacity: .45; cursor: default; }
+
+.row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+  margin: 16px 0 8px;
+}
+.row-head h2 { margin: 0; }
+.primary:disabled { opacity: .5; cursor: default; }
+
+.tiles {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 -22px;
+  padding: 0 22px 4px;
+  scrollbar-width: none;
+}
+.tiles::-webkit-scrollbar { display: none; }
+
+.tile {
+  flex: none;
+  width: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px 8px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 12px;
+  color: var(--muted);
+}
+.tile .art { height: 44px; display: grid; place-items: center; }
+.tile img { display: block; image-rendering: pixelated; }
+.tile.on { border-color: var(--accent); color: var(--text); }
+.tile.pending { border: 1.5px dashed var(--muted); color: var(--text); }
+.tile-price { display: flex; align-items: center; gap: 3px; color: #e0c27a; font-variant-numeric: tabular-nums; }
+.tile-price .coin { width: 10px; height: 10px; }
+.tile.scene { width: 108px; }
+.tile.scene .art { height: auto; }
+.tile.scene img { width: 92px; border-radius: 6px; image-rendering: auto; }
+.tile.locked img { filter: grayscale(.5) brightness(.65); }
+
 .primary {
   background: var(--accent);
   color: var(--accent-ink);
@@ -378,16 +472,6 @@ main { flex: 1; position: relative; overflow: hidden; }
 }
 .switch:checked { background: var(--accent); }
 .switch:checked::before { transform: translateX(18px); background: var(--bg); }
-
-.chips { display: flex; gap: 8px; flex-wrap: wrap; }
-.chips button {
-  padding: 9px 16px;
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 14px;
-}
-.chips button.on { background: var(--text); color: var(--bg); }
 
 .btn-row { display: flex; gap: 8px; }
 .ghost {

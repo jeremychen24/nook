@@ -100,6 +100,8 @@
     <button data-tod="night">Night</button>
     <span class="sep"></span>
     <button id="rain">Rain</button>
+    <span class="sep"></span>
+    <button id="coins">+100 coins</button>
   </div>
 
   <div class="stage">
@@ -189,9 +191,20 @@
       const btn = e.target.closest('[data-device]');
       if (btn) setDevice(btn.dataset.device);
     });
+    // Testing only: adds coins straight into the app's saved data (same origin), then reloads it.
+    document.getElementById('coins').addEventListener('click', e => {
+      e.stopPropagation();
+      try {
+        const data = JSON.parse(localStorage.getItem('nook:v1') || '{}');
+        data.coins = (data.coins || 0) + 100;
+        localStorage.setItem('nook:v1', JSON.stringify(data));
+        frame.contentWindow.location.reload();
+      } catch {}
+    });
+
     document.querySelector('.bar.sky').addEventListener('click', e => {
       const btn = e.target.closest('button');
-      if (!btn) return;
+      if (!btn || btn.id === 'coins') return;
       if (btn.id === 'rain') rain = !rain;
       else tod = btn.dataset.tod;
       applySky();

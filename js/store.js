@@ -12,6 +12,10 @@ export function defaults() {
     sessions: [],
     scene: 'cafe',
     seenGuide: false,
+    coins: 0,
+    owned: [], // ids of bought decorations and scenes
+    decor: {}, // { sceneId: { slotId: itemId } }, on top of each scene's defaults
+    wilted: false,
   };
 }
 

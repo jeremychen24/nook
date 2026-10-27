@@ -74,18 +74,22 @@ export function checkReturn(now = Date.now()) {
 
 // Restarts the current phase. Focus time already spent is logged as an abandoned session.
 export function reset() {
+  let session = null;
   update(s => {
-    logAbandoned(s);
+    session = logAbandoned(s);
     setPhase(s, s.timer.phase, false);
   });
+  if (session) emit('abandoned', { session });
 }
 
 // Jumps to the next phase without credit.
 export function skip() {
+  let session = null;
   update(s => {
-    logAbandoned(s);
+    session = logAbandoned(s);
     advance(s, false);
   });
+  if (session) emit('abandoned', { session });
 }
 
 // Called often; finishes the phase once its end time has passed.
@@ -139,9 +143,10 @@ function record(s, ms, ok, end, reason) {
   return session;
 }
 
+// Logs a focus session given up after at least a minute; returns it, or null.
 function logAbandoned(s) {
   const t = s.timer;
-  if (t.phase !== 'focus' || t.status === 'idle') return;
+  if (t.phase !== 'focus' || t.status === 'idle') return null;
   const spent = t.length - remaining();
-  if (spent >= MIN) record(s, spent, false, Date.now());
+  return spent >= MIN ? record(s, spent, false, Date.now()) : null;
 }

@@ -3,7 +3,7 @@
 
 import { Painter, makeCanvas, sprite, seeded, mix, pick } from '../pixel.js';
 import { ITEMS } from '../decor.js';
-import { isDark, lightsOn, toner, paintSky, createSkyLife, paintDecor, drawSteam } from './outside.js';
+import { isDark, lightsOn, toner, paintSky, createSkyLife, paintDecor, animateDecor } from './outside.js';
 
 const W = 180;
 const H = 196;
@@ -12,14 +12,14 @@ const PANES = [[32, 30, 56, 24], [92, 30, 56, 24], [32, 58, 56, 84], [92, 58, 56
 const LAMPS = [58, 122];
 const SIDEWALK = 122;
 
-const SLOTS = [
-  { id: 'wall', x: 14, y: 74 },
-  { id: 'shelf', x: 166, y: 96 },
-  { id: 'desk-l', x: 46, y: 153 },
-  { id: 'desk-c', x: 92, y: 153 },
-  { id: 'desk-r', x: 134, y: 153 },
+export const SLOTS = [
+  { id: 'wall', kind: 'wall', label: 'Wall', x: 14, y: 74 },
+  { id: 'shelf', kind: 'shelf', label: 'Shelf', x: 166, y: 96 },
+  { id: 'desk-l', kind: 'desk', label: 'Counter left', x: 46, y: 153 },
+  { id: 'desk-c', kind: 'desk', label: 'Counter middle', x: 92, y: 153 },
+  { id: 'desk-r', kind: 'desk', label: 'Counter right', x: 134, y: 153 },
 ];
-const DEFAULTS = { wall: 'menu', shelf: 'jars', 'desk-l': 'plant', 'desk-c': 'notebook', 'desk-r': 'mug' };
+export const DEFAULTS = { wall: 'menu', shelf: 'jars', 'desk-l': 'plant', 'desk-c': 'notebook', 'desk-r': 'mug' };
 const SKY_SPOTS = { sunset: [76, 56], dawn: [104, 50], moon: [136, 40] };
 
 const FAR = { dawn: '#4f4c78', day: '#8aa3bd', sunset: '#5a3f6a', dusk: '#232750', night: '#121a38' };
@@ -68,9 +68,9 @@ export function createCafe() {
       outsideKey = key;
     }
     const decor = { ...DEFAULTS, ...env.decor };
-    const decorKey = JSON.stringify(decor);
+    const decorKey = JSON.stringify(decor) + env.wilted;
     if (decorKey !== interiorKey) {
-      paintInterior(new Painter(interior), decor);
+      paintInterior(new Painter(interior), decor, env.wilted);
       interiorKey = decorKey;
     }
 
@@ -84,7 +84,7 @@ export function createCafe() {
     if (env.rain) life.rain(p);
     p.image(interior, 0, 0);
     drawLamps(p, env.tod === 'day' ? 0.55 : 1);
-    drawSteam(p, SLOTS, decor, ITEMS, env.t);
+    animateDecor(p, SLOTS, decor, ITEMS, env.t);
   }
 
   // Outside
@@ -250,7 +250,7 @@ export function createCafe() {
 
   // Inside
 
-  function paintInterior(p, decor) {
+  function paintInterior(p, decor, wilted) {
     p.clear();
     paintBrick(p, 0, 0, W, 146);
     p.alpha(0.22, () => {
@@ -306,7 +306,7 @@ export function createCafe() {
       SHADE.draw(p, x - 5, 28);
     }
 
-    paintDecor(p, SLOTS, decor, ITEMS);
+    paintDecor(p, SLOTS, decor, ITEMS, wilted);
   }
 
   function paintBrick(p, x0, y0, w, h) {
