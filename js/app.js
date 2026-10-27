@@ -1,8 +1,8 @@
-import { state, subscribe, on, replaceState, exportState } from './store.js';
+import { state, update, subscribe, on, replaceState, exportState } from './store.js';
 import * as timer from './timer.js';
 import { renderTasks, bindTasks, activeTask } from './tasks.js';
 import { unlock, chime } from './sounds.js';
-import { mountScene, pauseScene, resumeScene } from './scenes/index.js';
+import { SCENES, mountScene, pauseScene, resumeScene } from './scenes/index.js';
 
 const $ = sel => document.querySelector(sel);
 const LABELS = { focus: 'Focus', short: 'Short break', long: 'Long break' };
@@ -74,11 +74,39 @@ on('complete', ({ phase }) => {
   toast(phase === 'focus' ? 'Focus done' : 'Break over');
 });
 
+// Scene
+
+let mountedScene = null;
+
+// Live numbers for the scene: sessions finished today and how far the current focus has got.
+function sceneInfo() {
+  const midnight = new Date().setHours(0, 0, 0, 0);
+  const today = state.sessions.filter(s => s.ok && s.end >= midnight).length;
+  const t = state.timer;
+  const progress = t.phase === 'focus' && t.status !== 'idle' ? 1 - timer.remaining() / t.length : 0;
+  return { today, progress };
+}
+
+function syncScene() {
+  if (state.scene === mountedScene) return;
+  mountedScene = state.scene;
+  mountScene($('.scene'), state.scene, sceneInfo);
+  if (!$('#view-focus').classList.contains('active')) pauseScene();
+}
+
+$('#scenePicker').addEventListener('click', e => {
+  const btn = e.target.closest('[data-scene]');
+  if (btn) update(s => { s.scene = btn.dataset.scene; });
+});
+
 // Settings
 
 function renderSettings() {
   for (const key of Object.keys(STEPS)) $(`[data-value="${key}"]`).textContent = state.settings[key];
   $('#autoStart').checked = state.settings.autoStart;
+  $('#scenePicker').innerHTML = Object.entries(SCENES)
+    .map(([id, s]) => `<button data-scene="${id}" class="${id === state.scene ? 'on' : ''}">${s.name}</button>`)
+    .join('');
 }
 
 $('#view-settings').addEventListener('click', e => {
@@ -127,11 +155,11 @@ function renderAll() {
   renderFocus();
   renderTasks(tasksView);
   renderSettings();
+  syncScene();
 }
 
 subscribe(renderAll);
 bindTasks(tasksView);
-mountScene($('.scene'));
 timer.tick();
 renderAll();
 

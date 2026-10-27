@@ -181,6 +181,7 @@
       const query = new URLSearchParams();
       if (tod !== 'auto') query.set('tod', tod);
       if (rain) query.set('rain', '1');
+      if (params.get('scene')) query.set('scene', params.get('scene'));
       frame.src = `../index.html${query.size ? `?${query}` : ''}`;
     }
 

@@ -2,13 +2,20 @@
 
 import { Painter, loop } from '../pixel.js';
 import { createCafe } from './cafe.js';
+import { createLibrary } from './library.js';
+import { createClassroom } from './classroom.js';
 
-const SCENES = { cafe: createCafe };
+export const SCENES = {
+  cafe: { name: 'Café', create: createCafe },
+  library: { name: 'Library', create: createLibrary },
+  classroom: { name: 'Classroom', create: createClassroom },
+};
 const TIMES = ['dawn', 'day', 'sunset', 'dusk', 'night'];
 
-// ?tod=night and ?rain=1 preview other skies (dev/phone.html uses these).
+// ?tod=night, ?rain=1 and ?scene=library preview other looks (dev/phone.html uses these).
 const params = new URLSearchParams(location.search);
 const forcedTod = TIMES.includes(params.get('tod')) ? params.get('tod') : null;
+const forcedScene = SCENES[params.get('scene')] ? params.get('scene') : null;
 
 let scene = null;
 let painter = null;
@@ -24,16 +31,17 @@ export function timeOfDay(date = new Date()) {
   return 'night';
 }
 
-export function mountScene(container, id = 'cafe') {
+// info() supplies live numbers some scenes show, e.g. the classroom's chalkboard.
+export function mountScene(container, id, info = () => ({})) {
   anim?.stop();
-  scene = SCENES[id]();
+  scene = SCENES[forcedScene ?? id]?.create() ?? createCafe();
   const canvas = document.createElement('canvas');
   canvas.width = scene.W;
   canvas.height = scene.H;
   container.replaceChildren(canvas);
   painter = new Painter(canvas);
   const fps = matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 10;
-  anim = loop(t => scene.render(painter, { t, tod: forcedTod ?? timeOfDay(), rain, decor: {} }), fps);
+  anim = loop(t => scene.render(painter, { t, tod: forcedTod ?? timeOfDay(), rain, decor: {}, info: info() }), fps);
   anim.start();
 }
 

@@ -1,6 +1,6 @@
 // Network first so updates show up right away; the cache keeps the app working offline.
 
-const CACHE = 'nook-v2';
+const CACHE = 'nook-v3';
 const SHELL = [
   './',
   'index.html',
@@ -14,7 +14,10 @@ const SHELL = [
   'js/pixel.js',
   'js/decor.js',
   'js/scenes/index.js',
+  'js/scenes/outside.js',
   'js/scenes/cafe.js',
+  'js/scenes/library.js',
+  'js/scenes/classroom.js',
   'icons/icon-180.png',
   'icons/icon-192.png',
   'icons/icon-512.png',

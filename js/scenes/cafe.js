@@ -1,8 +1,9 @@
 // The café: a window counter looking out on a city street.
-// Everything is drawn in code on a 180×240 grid. The view outside follows the real time of day.
+// Everything is drawn in code on a 180×196 grid. The view outside follows the real time of day.
 
-import { Painter, makeCanvas, sprite, ditherBands, seeded, mix, pick } from '../pixel.js';
+import { Painter, makeCanvas, sprite, seeded, mix, pick } from '../pixel.js';
 import { ITEMS } from '../decor.js';
+import { isDark, lightsOn, toner, paintSky, createSkyLife, paintDecor, drawSteam } from './outside.js';
 
 const W = 180;
 const H = 196;
@@ -11,7 +12,6 @@ const PANES = [[32, 30, 56, 24], [92, 30, 56, 24], [32, 58, 56, 84], [92, 58, 56
 const LAMPS = [58, 122];
 const SIDEWALK = 122;
 
-// Slot positions are the item's bottom center.
 const SLOTS = [
   { id: 'wall', x: 14, y: 74 },
   { id: 'shelf', x: 166, y: 96 },
@@ -20,29 +20,9 @@ const SLOTS = [
   { id: 'desk-r', x: 134, y: 153 },
 ];
 const DEFAULTS = { wall: 'menu', shelf: 'jars', 'desk-l': 'plant', 'desk-c': 'notebook', 'desk-r': 'mug' };
+const SKY_SPOTS = { sunset: [76, 56], dawn: [104, 50], moon: [136, 40] };
 
-const SKY = {
-  dawn: ['#2e3a6e', '#6a5a8e', '#c9849a', '#f2b38a', '#f8d9a8'],
-  day: ['#4a86c8', '#5f98d4', '#7cb0e0', '#a3c9ea', '#cfe2f1'],
-  sunset: ['#2f2d66', '#6b3f78', '#b8566e', '#e98a5c', '#f7c27a'],
-  dusk: ['#0f1433', '#1d2150', '#33306a', '#57407a', '#7d5584'],
-  night: ['#070a1c', '#0b1028', '#111735', '#172044', '#1e2a52'],
-};
-const RAIN_SKY = {
-  light: ['#4e5866', '#5e6875', '#6f7985', '#808a95', '#929ba5'],
-  dark: ['#0b0e15', '#10141d', '#161b26', '#1c2230', '#232a3a'],
-};
 const FAR = { dawn: '#4f4c78', day: '#8aa3bd', sunset: '#5a3f6a', dusk: '#232750', night: '#121a38' };
-const CLOUD = { dawn: '#f0c6b4', day: '#f2f6fa', sunset: '#f2a07a', dusk: '#4a3f6a', night: '#18213f' };
-// Outdoor colors are pulled toward this color, by this much, for each time of day.
-const TINT = {
-  dawn: ['#5a4a7a', 0.25],
-  day: ['#ffffff', 0],
-  sunset: ['#c0604a', 0.2],
-  dusk: ['#1c1a40', 0.45],
-  night: ['#070a1c', 0.6],
-};
-
 const BUILDINGS = [
   { x: 32, w: 36, top: 70, wall: '#7c4637', trim: '#5a2f25', shop: 'door' },
   { x: 68, w: 42, top: 62, wall: '#a8957a', trim: '#7d6b54', shop: 'awning' },
@@ -65,34 +45,17 @@ const SHADE = sprite([
   '...yyyyy...',
 ], { d: '#7a4e22', b: '#c48a3c', h: '#e6b06a', y: '#fff1c4' });
 
-const isDark = tod => tod === 'dusk' || tod === 'night';
-
 export function createCafe() {
   const sky = makeCanvas(W, H);
   const city = makeCanvas(W, H);
   const interior = makeCanvas(W, H);
+  const life = createSkyLife(GLASS);
   let outsideKey = '';
   let interiorKey = '';
   let frame = 0;
 
-  const starRnd = seeded(11);
-  const stars = Array.from({ length: 18 }, () => ({
-    x: GLASS.x + Math.floor(starRnd() * GLASS.w),
-    y: GLASS.y + 1 + Math.floor(starRnd() * 34),
-    phase: Math.floor(starRnd() * 40),
-  }));
-  const clouds = [
-    { x: 40, y: 36, speed: 0.05 },
-    { x: 110, y: 44, speed: 0.035 },
-    { x: 150, y: 33, speed: 0.06 },
-  ];
   const walkers = [spawnWalker(52), spawnWalker(118)];
   const cars = [];
-  const drops = Array.from({ length: 46 }, () => newDrop(true));
-  const beads = Array.from({ length: 28 }, () => ({
-    x: GLASS.x + Math.floor(Math.random() * GLASS.w),
-    y: GLASS.y + Math.floor(Math.random() * GLASS.h),
-  }));
   const lamps = LAMPS.map(x => ({ x, dim: 0 }));
 
   function render(p, env) {
@@ -100,7 +63,7 @@ export function createCafe() {
     const tone = toner(env);
     const key = `${env.tod}:${env.rain}`;
     if (key !== outsideKey) {
-      paintSky(new Painter(sky), env);
+      paintSky(new Painter(sky), env, GLASS, SKY_SPOTS, 96);
       paintCity(new Painter(city), env, tone);
       outsideKey = key;
     }
@@ -113,40 +76,22 @@ export function createCafe() {
 
     p.clear();
     p.image(sky, 0, 0);
-    if (!env.rain && isDark(env.tod)) drawStars(p);
-    drawClouds(p, env);
+    life.stars(p, env, frame, (x, y) => y >= skylineTopAt(x));
+    life.clouds(p, env);
     p.image(city, 0, 0);
     drawWalkers(p, env, tone);
     drawCars(p, env, tone);
-    if (env.rain) drawRain(p);
+    if (env.rain) life.rain(p);
     p.image(interior, 0, 0);
     drawLamps(p, env.tod === 'day' ? 0.55 : 1);
-    drawSteam(p, decor, env.t);
+    drawSteam(p, SLOTS, decor, ITEMS, env.t);
   }
 
   // Outside
 
-  function paintSky(p, env) {
-    p.clear();
-    const stops = env.rain ? (isDark(env.tod) ? RAIN_SKY.dark : RAIN_SKY.light) : SKY[env.tod];
-    ditherBands(p, GLASS.x, GLASS.y, GLASS.w, 96, stops);
-    if (env.rain) return;
-    // Suns sit in gaps of the skyline so they peek out between buildings.
-    if (env.tod === 'sunset') {
-      p.alpha(0.25, () => p.disc(76, 56, 12, '#ffcf7a'));
-      p.disc(76, 56, 6, '#ffd98e');
-    } else if (env.tod === 'dawn') {
-      p.alpha(0.25, () => p.disc(104, 50, 10, '#ffe0a8'));
-      p.disc(104, 50, 5, '#ffe7bd');
-    } else if (isDark(env.tod)) {
-      p.disc(136, 40, 4, '#efe6c8');
-      p.disc(138, 39, 3, stops[0]); // bite out of the moon makes a crescent
-    }
-  }
-
   function paintCity(p, env, tone) {
     p.clear();
-    const lights = isDark(env.tod) || (env.rain && env.tod !== 'day');
+    const lights = lightsOn(env);
     const far = env.rain ? (isDark(env.tod) ? '#151a24' : '#6c7682') : FAR[env.tod];
     const rnd = seeded(42);
     for (const [x, top, w] of SKYLINE) {
@@ -221,26 +166,6 @@ export function createCafe() {
       p.rect(x + 13, 105, w - 17, 3, trim);
       p.rect(x + 13, 109, w - 17, 10, trim);
       p.rect(x + 14, 110, w - 19, 8, shopGlass);
-    }
-  }
-
-  function drawStars(p) {
-    for (const s of stars) {
-      if ((frame + s.phase) % 40 < 3) continue; // brief twinkle off
-      if (s.y >= skylineTopAt(s.x)) continue;
-      p.px(s.x, s.y, '#cfd6ff');
-    }
-  }
-
-  function drawClouds(p, env) {
-    const color = env.rain ? (isDark(env.tod) ? '#1a1f2a' : '#6b7480') : CLOUD[env.tod];
-    for (const c of clouds) {
-      c.x -= c.speed;
-      if (c.x < GLASS.x - 18) c.x = GLASS.x + GLASS.w + 2;
-      const x = Math.round(c.x);
-      p.rect(x + 4, c.y, 6, 1, color);
-      p.rect(x + 2, c.y + 1, 11, 1, color);
-      p.rect(x, c.y + 2, 16, 2, color);
     }
   }
 
@@ -323,33 +248,6 @@ export function createCafe() {
     }
   }
 
-  function newDrop(anywhere) {
-    return {
-      x: GLASS.x + Math.random() * (GLASS.w + 30),
-      y: anywhere ? GLASS.y + Math.random() * GLASS.h : GLASS.y - Math.random() * 20,
-      v: 3 + Math.random() * 2,
-    };
-  }
-
-  function drawRain(p) {
-    p.alpha(0.45, () => {
-      for (let i = 0; i < drops.length; i++) {
-        const d = drops[i];
-        d.y += d.v;
-        d.x -= d.v / 4;
-        if (d.y > GLASS.y + GLASS.h) drops[i] = newDrop(false);
-        p.rect(d.x, d.y, 1, 3, '#c3d0e0');
-      }
-    });
-    // Beads of water on the glass that now and then slide down a pixel.
-    for (const b of beads) {
-      if (Math.random() < 0.03) b.y++;
-      if (b.y > GLASS.y + GLASS.h - 2) b.y = GLASS.y + Math.floor(Math.random() * 20);
-      p.alpha(0.55, () => p.px(b.x, b.y, '#dbe5ee'));
-      p.alpha(0.35, () => p.px(b.x, b.y + 1, '#6f7c8c'));
-    }
-  }
-
   // Inside
 
   function paintInterior(p, decor) {
@@ -408,10 +306,7 @@ export function createCafe() {
       SHADE.draw(p, x - 5, 28);
     }
 
-    for (const slot of SLOTS) {
-      const item = ITEMS[decor[slot.id]];
-      if (item) item.draw(p, slot.x - Math.floor(item.w / 2), slot.y - item.h);
-    }
+    paintDecor(p, SLOTS, decor, ITEMS);
   }
 
   function paintBrick(p, x0, y0, w, h) {
@@ -438,21 +333,7 @@ export function createCafe() {
     }
   }
 
-  function drawSteam(p, decor, t) {
-    for (const slot of SLOTS) {
-      const item = ITEMS[decor[slot.id]];
-      if (!item?.steam) continue;
-      const sx = slot.x - Math.floor(item.w / 2) + item.steam[0];
-      const sy = slot.y - item.h + item.steam[1];
-      for (let i = 0; i < 3; i++) {
-        const k = (t * 0.45 + i / 3) % 1;
-        const x = sx + Math.round(Math.sin(k * 6 + i * 2) * 1.5);
-        p.alpha((1 - k) * 0.55, () => p.rect(x, sy - Math.round(k * 14), 1, 2, '#f4ece0'));
-      }
-    }
-  }
-
-  return { W, H, slots: SLOTS, defaults: DEFAULTS, render };
+  return { W, H, render };
 }
 
 function skylineTopAt(x) {
@@ -460,18 +341,4 @@ function skylineTopAt(x) {
   for (const [sx, st, sw] of SKYLINE) if (x >= sx && x < sx + sw) top = Math.min(top, st);
   for (const b of BUILDINGS) if (x >= b.x && x < b.x + b.w) top = Math.min(top, b.top);
   return top;
-}
-
-function toner(env) {
-  const [color, amount] = TINT[env.tod];
-  const cache = new Map();
-  return hex => {
-    let out = cache.get(hex);
-    if (!out) {
-      out = mix(hex, color, amount);
-      if (env.rain) out = mix(out, isDark(env.tod) ? '#0b0e15' : '#4e5866', 0.25);
-      cache.set(hex, out);
-    }
-    return out;
-  };
 }

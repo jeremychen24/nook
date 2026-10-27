@@ -47,6 +47,71 @@ const jars = sprite([
   'jjjjj..........ppp',
 ], { l: '#c48a3c', j: '#7f9c98', h: '#b9d0cc', b: '#4a2c1a', t: '#9a8040', g: '#6aa35a', p: '#b8643f' });
 
+const tea = sprite([
+  '..rrrrrr...',
+  '..wttttwss.',
+  '..wwwwww.s.',
+  '..swwwwss..',
+  'ddddddddddd',
+  '.eeeeeeeee.',
+], { r: '#fff4e0', w: '#e8dcc8', s: '#b9a88e', t: '#9a5a2a', d: '#d6c8ae', e: '#a8977a' });
+
+const books = sprite([
+  '.aaaaaaaaa..',
+  '.aAaaaaAaa..',
+  '.aaaaaaaaa..',
+  'bbbbbbbbbbb.',
+  'bBbbbbbbBbb.',
+  'bbbbbbbbbbb.',
+  '.cccccccccc.',
+  '.cCccccccCc.',
+  '.cccccccccc.',
+], { a: '#7a2e2e', A: '#c9a35a', b: '#2e4a6b', B: '#c9a35a', c: '#3f5a36', C: '#c9a35a' });
+
+const globe = sprite([
+  '....oooo....',
+  '..oolllooo..',
+  '.ohllllooll.',
+  '.oollooolll.',
+  '.ooooooolll.',
+  '.olloooooll.',
+  '..ollloooo..',
+  '...oooooo...',
+  '.m..oooo..m.',
+  '..mm....mm..',
+  '....mmmm....',
+  '.....ss.....',
+  '.....ss.....',
+  '...ssssss...',
+], { o: '#3f6f8f', l: '#6a9a5a', h: '#8fb7d0', m: '#c48a3c', s: '#5a3a22' });
+
+const apple = sprite([
+  '...sg..',
+  '.rr.rr.',
+  'rRrrrrr',
+  'rRrrrrd',
+  'rrrrrrd',
+  'rrrrrdd',
+  '.rrrdd.',
+  '..ddd..',
+], { r: '#c0392b', R: '#e8705e', d: '#8e2a20', s: '#5a3a22', g: '#5f9a52' });
+
+const pencils = sprite([
+  '.t......',
+  '.w...t..',
+  '.y.t.w..',
+  '.y.w.b.e',
+  '.y.r.b.y',
+  'cccccccc',
+  'cCcccccc',
+  'cCcccccc',
+  'cCcccccc',
+  'cCcccccc',
+  'cCcccccc',
+  'cccccccc',
+  '.cccccc.',
+], { t: '#3a2a1e', w: '#e8c99a', y: '#e0b84a', r: '#c0392b', b: '#3c6fb0', e: '#e89a9a', c: '#3f5a6b', C: '#5a7d92' });
+
 // Chalkboard menu, drawn with rectangles instead of a character grid.
 const menu = {
   w: 20,
@@ -68,10 +133,16 @@ const menu = {
   },
 };
 
+// fits lists the kinds of slot an item can go in.
 export const ITEMS = {
-  mug: { slot: 'desk', ...mug, steam: [3, -1] },
-  plant: { slot: 'desk', ...plant },
-  notebook: { slot: 'desk', ...notebook },
-  jars: { slot: 'shelf', ...jars },
-  menu: { slot: 'wall', ...menu },
+  mug: { fits: ['desk'], ...mug, steam: [3, -1] },
+  tea: { fits: ['desk'], ...tea, steam: [4, -1] },
+  plant: { fits: ['desk', 'shelf'], ...plant },
+  notebook: { fits: ['desk'], ...notebook },
+  books: { fits: ['desk', 'shelf'], ...books },
+  apple: { fits: ['desk'], ...apple },
+  pencils: { fits: ['desk'], ...pencils },
+  globe: { fits: ['shelf'], ...globe },
+  jars: { fits: ['shelf'], ...jars },
+  menu: { fits: ['wall'], ...menu },
 };

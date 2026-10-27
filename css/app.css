@@ -313,6 +313,16 @@ main { flex: 1; position: relative; overflow: hidden; }
 .switch:checked { background: var(--accent); }
 .switch:checked::before { transform: translateX(18px); background: var(--bg); }
 
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chips button {
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 14px;
+}
+.chips button.on { background: var(--text); color: var(--bg); }
+
 .btn-row { display: flex; gap: 8px; }
 .ghost {
   padding: 8px 14px;

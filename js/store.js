@@ -10,6 +10,7 @@ export function defaults() {
     tasks: [],
     activeTaskId: null,
     sessions: [],
+    scene: 'cafe',
   };
 }
 
