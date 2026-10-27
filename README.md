@@ -10,6 +10,8 @@ python -m http.server 8000
 
 Then open http://localhost:8000. No build step and no dependencies.
 
+For a phone-shaped preview with the notch and home bar, open http://localhost:8000/dev/phone.html.
+
 ## Test
 
 ```

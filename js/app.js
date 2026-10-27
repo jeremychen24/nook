@@ -2,6 +2,7 @@ import { state, subscribe, on, replaceState, exportState } from './store.js';
 import * as timer from './timer.js';
 import { renderTasks, bindTasks, activeTask } from './tasks.js';
 import { unlock, chime } from './sounds.js';
+import { mountScene, pauseScene, resumeScene } from './scenes/index.js';
 
 const $ = sel => document.querySelector(sel);
 const LABELS = { focus: 'Focus', short: 'Short break', long: 'Long break' };
@@ -13,6 +14,8 @@ const tasksView = $('#view-tasks');
 function show(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === `view-${view}`));
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  if (view === 'focus') resumeScene();
+  else pauseScene();
 }
 
 $('.tabs').addEventListener('click', e => {
@@ -128,6 +131,7 @@ function renderAll() {
 
 subscribe(renderAll);
 bindTasks(tasksView);
+mountScene($('.scene'));
 timer.tick();
 renderAll();
 
