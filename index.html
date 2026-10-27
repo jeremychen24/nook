@@ -24,6 +24,16 @@
         <div class="time" id="time">25:00</div>
         <div class="dots" id="dots"></div>
         <button class="task-chip" id="taskChip">Pick a task</button>
+        <div class="mode" id="modePicker">
+          <button data-mode="stand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>
+            Stand
+          </button>
+          <button data-mode="facedown">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="15" width="18" height="5" rx="1.5"/><path d="M12 3.5v7.5M8.5 7.5 12 11l3.5-3.5"/></svg>
+            Face-down
+          </button>
+        </div>
         <div class="controls">
           <button class="icon-btn" id="resetBtn" aria-label="Restart">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v4h4"/></svg>
@@ -70,6 +80,11 @@
         <label class="setting"><span>Auto-start next</span><input type="checkbox" id="autoStart" class="switch"></label>
       </div>
 
+      <h2>Phone lock</h2>
+      <div class="card">
+        <div class="setting"><span>Guided Access</span><button class="ghost" id="guideBtn">How to</button></div>
+      </div>
+
       <h2>Scene</h2>
       <div class="chips" id="scenePicker"></div>
 
@@ -99,6 +114,26 @@
       Settings
     </button>
   </nav>
+
+  <div class="lock" id="lockScreen" hidden>
+    <div class="lock-time" id="lockTime">25:00</div>
+    <p class="lock-msg" id="lockMsg"></p>
+    <button class="ghost" id="lockEnd">End session</button>
+  </div>
+
+  <div class="sheet" id="guide" hidden>
+    <div class="sheet-card" role="dialog" aria-labelledby="guideTitle">
+      <h1 id="guideTitle">Lock Nook in place</h1>
+      <p class="muted">iPhone can keep you inside one app until you enter a passcode. Set it up once:</p>
+      <ol>
+        <li>Open <b>Settings › Accessibility › Guided Access</b> and turn it on.</li>
+        <li>Under <b>Passcode Settings</b>, set a passcode.</li>
+        <li>In Nook, <b>triple-click the side button</b>, then tap <b>Start</b>.</li>
+      </ol>
+      <p class="muted">To get out, triple-click again and enter the passcode.</p>
+      <button class="primary" id="guideDone">Got it</button>
+    </div>
+  </div>
 
   <div class="toast" id="toast" role="status"></div>
 </body>

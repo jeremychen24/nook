@@ -163,7 +163,73 @@ main { flex: 1; position: relative; overflow: hidden; }
 }
 .task-chip.set { color: var(--text); }
 
+.mode { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, .05); }
+.mode[hidden] { display: none; }
+.mode button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.mode button svg { width: 16px; height: 16px; }
+.mode button.on { background: var(--surface-2); color: var(--text); }
+.mode button:disabled { cursor: default; }
+.mode button:disabled:not(.on) { opacity: .4; }
+
 .controls { display: flex; align-items: center; gap: 28px; margin-top: 6px; }
+
+/* Face-down lock screen: pure black so an OLED screen is effectively off. */
+.lock {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+  background: #000;
+  text-align: center;
+}
+.lock[hidden] { display: none; }
+.lock-time {
+  font-size: 72px;
+  font-weight: 200;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.lock-msg { margin: 0; color: var(--muted); font-size: 15px; }
+.lock[data-view="down"] .lock-time { opacity: .12; }
+.lock[data-view="down"] .lock-msg,
+.lock[data-view="down"]:not(.peek) #lockEnd { display: none; }
+
+/* Bottom sheet for the Guided Access guide */
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, .55);
+}
+.sheet[hidden] { display: none; }
+.sheet-card {
+  width: 100%;
+  padding: 24px 22px calc(var(--safe-bottom) + 22px);
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  -webkit-user-select: text;
+  user-select: text;
+}
+.sheet-card h1 { margin-top: 0; }
+.sheet-card ol { padding-left: 20px; margin: 16px 0; line-height: 1.5; }
+.sheet-card li + li { margin-top: 8px; }
+.sheet-card .primary { width: 100%; margin-top: 8px; }
+.muted { color: var(--muted); font-size: 14px; margin: 0; }
 
 .primary {
   background: var(--accent);

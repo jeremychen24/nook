@@ -5,12 +5,13 @@ const KEY = 'nook:v1';
 export function defaults() {
   return {
     version: 1,
-    settings: { focusMin: 25, shortMin: 5, longMin: 15, longEvery: 4, autoStart: false },
-    timer: { phase: 'focus', status: 'idle', length: 25 * 60000, remaining: 25 * 60000, endsAt: 0, cycle: 0 },
+    settings: { focusMin: 25, shortMin: 5, longMin: 15, longEvery: 4, autoStart: false, mode: 'stand' },
+    timer: { phase: 'focus', status: 'idle', length: 25 * 60000, remaining: 25 * 60000, endsAt: 0, cycle: 0, leftAt: 0, seenAt: 0 },
     tasks: [],
     activeTaskId: null,
     sessions: [],
     scene: 'cafe',
+    seenGuide: false,
   };
 }
 

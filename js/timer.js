@@ -5,6 +5,9 @@ import { state, update, emit, uid } from './store.js';
 
 const MIN = 60000;
 
+// How long you can be out of Nook during a focus session before it ends.
+export const GRACE = 10 * 1000;
+
 export function lengthOf(phase, settings = state.settings) {
   const mins = phase === 'focus' ? settings.focusMin : phase === 'short' ? settings.shortMin : settings.longMin;
   return mins * MIN;
@@ -21,6 +24,8 @@ export function start() {
     if (t.status === 'running') return;
     t.endsAt = Date.now() + t.remaining;
     t.status = 'running';
+    t.leftAt = 0;
+    t.seenAt = Date.now();
   });
 }
 
@@ -30,7 +35,41 @@ export function pause() {
     if (t.status !== 'running') return;
     t.remaining = Math.max(0, t.endsAt - Date.now());
     t.status = 'paused';
+    t.leftAt = 0;
   });
+}
+
+// Nook went to the background. Only matters while a focus session is running.
+export function markLeft(now = Date.now()) {
+  const t = state.timer;
+  if (t.phase !== 'focus' || t.status !== 'running' || t.leftAt) return;
+  update(s => { s.timer.leftAt = now; });
+}
+
+// Heartbeat while focusing, so a crash or force-quit (no background event) still counts as leaving.
+export function markSeen(now = Date.now()) {
+  update(s => { s.timer.seenAt = now; });
+}
+
+// Nook is back on screen or just opened. If you were away longer than GRACE before the
+// session would have finished, the session ends unfinished. Returns true when that happens.
+export function checkReturn(now = Date.now()) {
+  const t = state.timer;
+  const running = t.phase === 'focus' && t.status === 'running';
+  const leftAt = t.leftAt || (t.seenAt && now - t.seenAt > GRACE ? t.seenAt : 0);
+  if (!running || !leftAt) {
+    if (t.leftAt) update(s => { s.timer.leftAt = 0; });
+    return false;
+  }
+  const failed = Math.min(now, t.endsAt) - leftAt > GRACE;
+  update(s => {
+    s.timer.leftAt = 0;
+    if (!failed) return;
+    record(s, s.timer.length - Math.max(0, s.timer.endsAt - leftAt), false, leftAt, 'left');
+    setPhase(s, 'focus', false);
+  });
+  if (failed) emit('failed', { reason: 'left' });
+  return failed;
 }
 
 // Restarts the current phase. Focus time already spent is logged as an abandoned session.
@@ -87,11 +126,15 @@ function setPhase(s, phase, run, now = Date.now()) {
   t.remaining = t.length;
   t.status = run ? 'running' : 'idle';
   t.endsAt = run ? now + t.length : 0;
+  t.leftAt = 0;
+  t.seenAt = run ? now : 0;
 }
 
-function record(s, ms, ok, end) {
+// reason is set for sessions that ended unfinished because of something other than a tap, e.g. 'left'.
+function record(s, ms, ok, end, reason) {
   const task = s.tasks.find(x => x.id === s.activeTaskId);
   const session = { id: uid(), taskId: task?.id ?? null, cls: task?.cls ?? '', start: end - ms, end, ms, ok };
+  if (reason) session.reason = reason;
   s.sessions.push(session);
   return session;
 }

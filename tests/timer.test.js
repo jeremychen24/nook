@@ -1,6 +1,6 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { state, replaceState, defaults } from '../js/store.js';
+import { state, replaceState, defaults, on } from '../js/store.js';
 import * as timer from '../js/timer.js';
 import { addTask } from '../js/tasks.js';
 
@@ -100,6 +100,79 @@ test('changing a length while idle updates the clock, while running it waits', (
   timer.start();
   timer.setSetting('focusMin', 30);
   assert.equal(timer.remaining(), 50 * MIN);
+});
+
+test('a quick trip out of the app is forgiven', () => {
+  timer.start();
+  now += 5 * MIN;
+  timer.markLeft();
+  now += 8000;
+  assert.equal(timer.checkReturn(), false);
+  assert.equal(state.timer.status, 'running');
+  assert.equal(state.timer.leftAt, 0);
+});
+
+test('leaving the app for longer than the grace period ends the session', () => {
+  let failed = 0;
+  on('failed', () => failed++);
+  timer.start();
+  now += 10 * MIN;
+  timer.markLeft();
+  now += 30 * 1000;
+  assert.equal(timer.checkReturn(), true);
+  assert.equal(failed, 1);
+  assert.equal(state.timer.phase, 'focus');
+  assert.equal(state.timer.status, 'idle');
+  const [session] = state.sessions;
+  assert.equal(session.ok, false);
+  assert.equal(session.reason, 'left');
+  assert.equal(session.ms, 10 * MIN);
+});
+
+test('leaving just before the end still credits the session', () => {
+  timer.start();
+  now += 25 * MIN - 4000;
+  timer.markLeft();
+  now += 10 * MIN;
+  assert.equal(timer.checkReturn(), false);
+  timer.tick();
+  assert.equal(state.sessions.length, 1);
+  assert.equal(state.sessions[0].ok, true);
+});
+
+test('leaving during a break or while paused is fine', () => {
+  finishPhase();
+  timer.start();
+  timer.markLeft();
+  now += 3 * MIN;
+  assert.equal(timer.checkReturn(), false);
+
+  replaceState(defaults());
+  timer.start();
+  now += MIN;
+  timer.pause();
+  timer.markLeft();
+  now += 10 * MIN;
+  assert.equal(timer.checkReturn(), false);
+  assert.equal(state.timer.status, 'paused');
+});
+
+test('a force-quit with no background event is caught by the heartbeat', () => {
+  timer.start();
+  now += 6 * MIN;
+  timer.markSeen();
+  now += 2 * MIN; // app was killed; it opens again two minutes later
+  assert.equal(timer.checkReturn(), true);
+  assert.equal(state.sessions[0].reason, 'left');
+});
+
+test('a quick reload does not end the session', () => {
+  timer.start();
+  now += 6 * MIN;
+  timer.markSeen();
+  now += 3000;
+  assert.equal(timer.checkReturn(), false);
+  assert.equal(state.timer.status, 'running');
 });
 
 test('sessions remember the active task and class', () => {
