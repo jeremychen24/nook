@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Nook Poster</title>
+  <!-- Draws a scene at link-preview size (1200×630) with the name on it. Screenshot it to make
+       og.png: e.g. msedge --headless --window-size=1200,630 --screenshot=og.png dev/poster.html?tod=dusk -->
+  <style>
+    html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #16171a; font-family: -apple-system, "Segoe UI", sans-serif; }
+    canvas { position: absolute; inset: 0; width: 1200px; height: 630px; image-rendering: pixelated; }
+    .shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(22, 23, 26, .92), rgba(22, 23, 26, 0) 55%); }
+    .title { position: absolute; left: 60px; bottom: 54px; color: #e9e6e1; }
+    .title b { display: block; font-size: 88px; font-weight: 600; letter-spacing: -.02em; line-height: 1; }
+    .title span { display: block; margin-top: 10px; font-size: 30px; color: #e2a65b; }
+  </style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <div class="shade"></div>
+  <div class="title"><b>Nook</b><span>A cozy pixel-art focus timer</span></div>
+  <script type="module">
+    import { SCENES } from '../js/scenes/index.js';
+    import { Painter } from '../js/pixel.js';
+
+    const params = new URLSearchParams(location.search);
+    const scene = SCENES[params.get('scene') || 'cafe'].create(Math.round((196 * 1200) / 630));
+    const canvas = document.getElementById('scene');
+    canvas.width = scene.W;
+    canvas.height = scene.H;
+    const painter = new Painter(canvas);
+    // A few frames so people and steam are mid-motion rather than at their starting spots.
+    for (let i = 0; i < 40; i++) scene.render(painter, { t: i / 10, tod: params.get('tod') || 'dusk', rain: false, decor: {}, wilted: false });
+  </script>
+</body>
+</html>
