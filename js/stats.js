@@ -59,5 +59,71 @@ export function computeStats(sessions, now = Date.now()) {
   };
 }
 
+const dayKey = ms => {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// One month as weeks (Monday first) of days: { key, day, minutes, sessions, inMonth }.
+// Days from the neighbouring months fill out the first and last weeks.
+export function monthGrid(sessions, year, month) {
+  const totals = new Map();
+  for (const s of sessions) {
+    if (!s.ok) continue;
+    const t = totals.get(dayKey(s.end)) ?? { ms: 0, n: 0 };
+    t.ms += s.ms;
+    t.n++;
+    totals.set(dayKey(s.end), t);
+  }
+  const last = new Date(year, month + 1, 0);
+  const d = new Date(year, month, 1);
+  d.setDate(1 - ((d.getDay() + 6) % 7)); // back to Monday
+  const weeks = [];
+  while (d <= last) {
+    const week = [];
+    for (let i = 0; i < 7; i++) {
+      const t = totals.get(dayKey(d));
+      week.push({ key: dayKey(d), day: d.getDate(), minutes: t ? Math.round(t.ms / MIN) : 0, sessions: t?.n ?? 0, inMonth: d.getMonth() === month });
+      d.setDate(d.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+  return weeks;
+}
+
+// Finished focus per task (tasks that still exist), most time first.
+export function taskTotals(sessions, tasks, limit = 6) {
+  const byId = new Map(tasks.map(t => [t.id, t]));
+  const totals = new Map();
+  for (const s of sessions) {
+    if (!s.ok || !byId.has(s.taskId)) continue;
+    const t = totals.get(s.taskId) ?? { ms: 0, sessions: 0, last: 0 };
+    t.ms += s.ms;
+    t.sessions++;
+    t.last = Math.max(t.last, s.end);
+    totals.set(s.taskId, t);
+  }
+  return [...totals]
+    .map(([id, t]) => ({ name: byId.get(id).name, cls: byId.get(id).cls, minutes: Math.round(t.ms / MIN), sessions: t.sessions, last: t.last }))
+    .sort((a, b) => b.minutes - a.minutes)
+    .slice(0, limit);
+}
+
+// The most days in a row ever with a finished focus session.
+export function longestStreak(sessions) {
+  const days = [...new Set(sessions.filter(s => s.ok).map(s => dayKey(s.end)))].sort();
+  let best = 0;
+  let run = 0;
+  let prev = null;
+  for (const key of days) {
+    const [y, m, d] = key.split('-').map(Number);
+    const yesterday = dayKey(new Date(y, m - 1, d - 1).getTime());
+    run = prev === yesterday ? run + 1 : 1;
+    best = Math.max(best, run);
+    prev = key;
+  }
+  return best;
+}
+
 export const fmtMinutes = m => (m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ''}`);
 export const fmtHour = h => `${h % 12 || 12} ${h < 12 ? 'am' : 'pm'}`;

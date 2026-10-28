@@ -2,8 +2,9 @@ import { state, update, subscribe, on, replaceState, exportState } from './store
 import * as timer from './timer.js';
 import { renderTasks, bindTasks, activeTask, addNote, removeNote, noteToTask } from './tasks.js';
 import { unlock, chime, playAmbient, setVolume } from './sounds.js';
-import { computeStats, fmtMinutes, fmtHour } from './stats.js';
-import { weekChart, classChart, hourChart } from './charts.js';
+import { computeStats, fmtMinutes, fmtHour, monthGrid, taskTotals } from './stats.js';
+import { BADGES, BADGE_COINS, checkBadges } from './badges.js';
+import { weekChart, barList, hourChart, monthHeatmap } from './charts.js';
 import { SCENES, mountScene, pauseScene, resumeScene, sceneThumbnail } from './scenes/index.js';
 import { lockView, armFaceDown, release, syncWakeLock, onLockChange, canStayAwake } from './lock.js';
 import { award, wilt, water, buy, place, owns, priceOf, decorFor, switchScene, WATER_COST } from './rewards.js';
@@ -222,13 +223,33 @@ $('#lockScreen').addEventListener('click', () => {
   peekTimer = setTimeout(() => el.classList.remove('peek'), 4000);
 });
 
-let toastTimer;
+// Toasts take turns, so one (a badge, say) doesn't hide another (the coins for a session).
+const toasts = [];
+let toastTimer = 0;
 function toast(msg, ms = 2400) {
+  toasts.push([msg, ms]);
+  if (!toastTimer) nextToast();
+}
+function nextToast() {
   const el = $('#toast');
-  el.textContent = msg;
+  const next = toasts.shift();
+  if (!next) {
+    el.classList.remove('show');
+    toastTimer = 0;
+    return;
+  }
+  el.textContent = next[0];
   el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+  toastTimer = setTimeout(nextToast, next[1]);
+}
+
+// Badges can unlock on any change; announce them after whatever caused it has had its say.
+function announceBadges(fresh) {
+  if (!fresh.length) return;
+  const msg = fresh.length === 1
+    ? `Badge unlocked: ${fresh[0].icon} ${fresh[0].name} · +${BADGE_COINS} coins`
+    : `${fresh.length} badges unlocked · +${fresh.length * BADGE_COINS} coins`;
+  setTimeout(() => toast(msg, 3500), 0);
 }
 
 on('complete', ({ phase, session }) => {
@@ -553,6 +574,9 @@ document.querySelectorAll('.sheet').forEach(sheet => {
 
 // Stats
 
+let monthOffset = 0; // the heatmap's month: 0 is this month, -1 last month, …
+const CHEVRON = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+
 function renderStats() {
   if (!$('#view-stats').classList.contains('active')) return;
   const s = computeStats(state.sessions);
@@ -561,16 +585,47 @@ function renderStats() {
   $('#statStreak').textContent = `${s.streak} ${s.streak === 1 ? 'day' : 'days'}`;
   $('#statRate').textContent = s.finishRate === null ? '–' : `${Math.round(s.finishRate * 100)}%`;
 
+  const now = new Date();
+  const month = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+  const monthLabel = month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const tasks = taskTotals(state.sessions, state.tasks);
+  const chart = svg => `<div class="chart">${svg}<div class="chart-tip" hidden></div></div>`;
+
   const empty = s.finished === 0;
   $('#statsEmpty').hidden = !empty;
-  $('#statCharts').innerHTML = empty ? '' : `
-    <h2>Last 7 days</h2>
-    <div class="chart">${weekChart(s.days)}<div class="chart-tip" hidden></div></div>
-    ${s.classes.length ? `<h2>By class · 30 days</h2><div class="chart">${classChart(s.classes)}<div class="chart-tip" hidden></div></div>` : ''}
-    <h2>Time of day</h2>
-    <div class="chart">${hourChart(s.hours, s.bestHour)}<div class="chart-tip" hidden></div></div>
-    <p class="caption">You start the most focus around ${fmtHour(s.bestHour)}</p>`;
+  $('#statCharts').innerHTML = `
+    <div class="row-head"><h2>${monthLabel}</h2>
+      <div class="btn-row">
+        <button class="icon-btn small" data-month="-1" aria-label="Previous month">${CHEVRON('M15 6l-6 6 6 6')}</button>
+        <button class="icon-btn small" data-month="1" aria-label="Next month" ${monthOffset === 0 ? 'disabled' : ''}>${CHEVRON('M9 6l6 6-6 6')}</button>
+      </div>
+    </div>
+    ${chart(monthHeatmap(monthGrid(state.sessions, month.getFullYear(), month.getMonth()), todayKey, monthLabel))}
+    ${empty ? '' : `
+      <h2>Last 7 days</h2>
+      ${chart(weekChart(s.days))}
+      ${s.classes.length ? `<h2>By class · 30 days</h2>${chart(barList(s.classes, 'Focus by class, last 30 days', 'Class'))}` : ''}
+      ${tasks.length ? `<h2>By task</h2>${chart(barList(tasks.map(t => ({ name: t.name, minutes: t.minutes, note: `${t.sessions}×` })), 'Focus by task', 'Task'))}` : ''}
+      <h2>Time of day</h2>
+      ${chart(hourChart(s.hours, s.bestHour))}
+      <p class="caption">You start the most focus around ${fmtHour(s.bestHour)}</p>`}`;
+
+  $('#badgeCount').textContent = `${BADGES.filter(b => state.badges[b.id]).length} of ${BADGES.length}`;
+  $('#badgeGrid').innerHTML = BADGES.map(b => `
+    <div class="badge${state.badges[b.id] ? ' on' : ''}" title="${b.hint}">
+      <span class="badge-icon" aria-hidden="true">${b.icon}</span>
+      <b>${b.name}</b>
+      <small>${b.hint}</small>
+    </div>`).join('');
 }
+
+$('#statCharts').addEventListener('click', e => {
+  const btn = e.target.closest('[data-month]');
+  if (!btn || btn.disabled) return;
+  monthOffset = Math.min(0, monthOffset + Number(btn.dataset.month));
+  renderStats();
+});
 
 // Tooltips: hover on a computer, tap on a phone. They add detail; every value is also in the tables.
 function showTip(e) {
@@ -671,6 +726,7 @@ function renderAll() {
 subscribe(() => {
   renderAll();
   syncWakeLock();
+  announceBadges(checkBadges());
 });
 onLockChange(renderFocus);
 bindTasks(tasksView);
@@ -685,6 +741,7 @@ timer.tick();
 if (state.settings.mode === 'facedown' && state.timer.phase === 'focus' && state.timer.status === 'running') timer.pause();
 syncLayout();
 renderAll();
+announceBadges(checkBadges()); // badges already earned by existing history
 syncWakeLock();
 if (isIOS && !state.seenGuide) openGuide();
 else if (spareKeySeen()) openRotate(); // the code was shown last time; offer a new one
