@@ -289,6 +289,24 @@ function openGuide() {
 }
 
 $('#guideBtn').addEventListener('click', openGuide);
+
+// In iPhone Safari (not yet on the Home Screen), explain how to install, once.
+const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+$('#installDone').addEventListener('click', () => {
+  $('#install').hidden = true;
+  update(s => { s.seenInstall = true; });
+});
+
+// Everything lives on this device, so nudge for a backup about once a month once there's
+// something worth keeping (at most one reminder a week).
+function maybeRemindBackup(now = Date.now()) {
+  const DAY = 864e5;
+  const worthKeeping = state.sessions.length >= 10;
+  const stale = now - state.lastBackup > 30 * DAY;
+  if (!worthKeeping || !stale || now - state.backupNudgedAt < 7 * DAY) return;
+  update(s => { s.backupNudgedAt = now; });
+  toast('Time for a backup? Settings › Backup › Export', 5000);
+}
 $('#guideNewCode').addEventListener('click', newGuideCode);
 $('#guideDone').addEventListener('click', () => {
   $('#guide').hidden = true;
@@ -661,6 +679,9 @@ $('#strictPicker').addEventListener('click', e => {
 function renderSettings() {
   for (const key of Object.keys(STEPS)) $(`[data-value="${key}"]`).textContent = state.settings[key];
   $('#autoStart').checked = state.settings.autoStart;
+  $('#backupWhen').textContent = state.lastBackup
+    ? `Last saved ${new Date(state.lastBackup).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+    : 'Never saved';
   $('#strictPicker').querySelectorAll('[data-strict]').forEach(b => b.classList.toggle('on', b.dataset.strict === state.settings.strict));
   $('#strictNote').textContent = STRICT_NOTES[state.settings.strict];
   const hasKey = Boolean(state.spareKey.code);
@@ -683,7 +704,10 @@ $('#exportBtn').addEventListener('click', async () => {
   const name = `nook-backup-${new Date().toISOString().slice(0, 10)}.json`;
   const file = new File([exportState()], name, { type: 'application/json' });
   if (navigator.canShare?.({ files: [file] })) {
-    try { await navigator.share({ files: [file] }); } catch {} // closing the share sheet throws
+    try {
+      await navigator.share({ files: [file] });
+      update(s => { s.lastBackup = Date.now(); });
+    } catch {} // closing the share sheet throws
     return;
   }
   const a = document.createElement('a');
@@ -691,6 +715,7 @@ $('#exportBtn').addEventListener('click', async () => {
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  update(s => { s.lastBackup = Date.now(); });
 });
 
 $('#importInput').addEventListener('change', async e => {
@@ -742,8 +767,11 @@ if (state.settings.mode === 'facedown' && state.timer.phase === 'focus' && state
 syncLayout();
 renderAll();
 announceBadges(checkBadges()); // badges already earned by existing history
+maybeRemindBackup();
+navigator.storage?.persist?.().catch(() => {}); // ask the browser not to clear Nook's data
 syncWakeLock();
-if (isIOS && !state.seenGuide) openGuide();
+if (isIOS && !standalone && !state.seenInstall) $('#install').hidden = false;
+else if (isIOS && !state.seenGuide) openGuide();
 else if (spareKeySeen()) openRotate(); // the code was shown last time; offer a new one
 
 let lastMinute = new Date().getMinutes();

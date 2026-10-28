@@ -21,6 +21,9 @@ export function defaults() {
     wilted: false,
     spareKey: { code: '', savedAt: 0 }, // copy of the Guided Access passcode, see spare.js
     badges: {}, // badge id → when it was earned, see badges.js
+    seenInstall: false, // the Home Screen sheet (iPhone Safari) was dismissed
+    lastBackup: 0, // when a backup was last exported
+    backupNudgedAt: 0, // when we last reminded about backups
     notes: [], // thoughts parked during focus: { id, text, at }
     exams: [], // { id, name, cls, date: 'YYYY-MM-DD', goal, createdAt }
     schedule: [], // weekly classes and commitments: { id, name, days: [0–6, Sun = 0], start: 'HH:MM', end: 'HH:MM', ab: '' | 'A' | 'B' }

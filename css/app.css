@@ -385,6 +385,8 @@ html:not(.desktop) .focus-ui { z-index: 1; }
 .spare-wait { display: flex; flex-direction: column; gap: 10px; }
 .spare-wait span { font-size: 30px; font-weight: 300; font-variant-numeric: tabular-nums; }
 .guide-later { display: block; margin: 10px auto 0; }
+.inline-icon { width: 17px; height: 17px; vertical-align: -3px; }
+.setting-sub { display: block; font-size: 12px; color: var(--muted); }
 #spareBtn:disabled { opacity: .45; cursor: default; }
 
 /* The one-time Guided Access code in the guide */

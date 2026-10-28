@@ -192,7 +192,7 @@
 
       <h2>Data</h2>
       <div class="card">
-        <div class="setting"><span>Backup</span>
+        <div class="setting"><span>Backup<small class="setting-sub" id="backupWhen"></small></span>
           <div class="btn-row">
             <button class="ghost" id="exportBtn">Export</button>
             <label class="ghost">Import<input type="file" id="importInput" accept="application/json,.json" hidden></label>
@@ -278,6 +278,19 @@
       </ol>
       <button class="primary" id="rotateSaved">I've set this code</button>
       <button class="ghost guide-later" id="rotateLater">Later</button>
+    </div>
+  </div>
+
+  <div class="sheet" id="install" hidden>
+    <div class="sheet-card" role="dialog" aria-labelledby="installTitle">
+      <h1 id="installTitle">Put Nook on your Home Screen</h1>
+      <ol>
+        <li>Tap <b>Share</b> <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8"/></svg> at the bottom of Safari.</li>
+        <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+        <li>Open Nook from its new icon.</li>
+      </ol>
+      <p class="muted">It opens full screen with a bigger scene, works offline, and keeps your data safe: Safari can clear a website's saved data if you don't visit it for about a week, but Home Screen apps keep theirs.</p>
+      <button class="primary" id="installDone">Got it</button>
     </div>
   </div>
 
