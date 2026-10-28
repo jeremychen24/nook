@@ -492,6 +492,29 @@ select[hidden] { display: none; }
 /* Chrome and Edge put a clock icon inside time boxes; there's no room for it here. */
 .time-range input::-webkit-calendar-picker-indicator { display: none; }
 
+/* A view title with a button beside it (the Plan's expand button). */
+.view-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.icon-btn.expand-btn { display: none; }
+.desktop .icon-btn.expand-btn { display: grid; }
+.expand-btn svg { width: 18px; height: 18px; }
+
+/* Expanded Plan on a big screen: a wide panel with the week on the left (day cards in a grid)
+   and tests, classes and study hours on the right. :has() widens the panel only on this tab. */
+.desktop.plan-wide main:has(#view-plan.active) { width: min(1180px, calc(100vw - 48px)); }
+.desktop.plan-wide #view-plan.active {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+  align-content: start;
+  column-gap: 32px;
+  padding: 24px 28px;
+}
+.desktop.plan-wide #view-plan .view-head { grid-column: 1 / -1; }
+.desktop.plan-wide .plan-main,
+.desktop.plan-wide .plan-side { min-width: 0; }
+.desktop.plan-wide .plan-side > h2:first-child { margin-top: 24px; }
+.desktop.plan-wide #planList { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 18px; }
+.desktop.plan-wide #planList .day-title { margin-top: 0; }
+
 .next-up {
   padding: 6px 12px;
   border-radius: 999px;

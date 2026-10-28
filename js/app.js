@@ -47,6 +47,7 @@ function syncLayout() {
   else $('#view-focus').prepend($('#stage'));
   syncScene();
   syncSceneMotion();
+  renderPlan(planView); // expanded Plan only applies on big screens
 }
 
 wideQuery.addEventListener('change', syncLayout);

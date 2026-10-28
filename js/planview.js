@@ -1,14 +1,19 @@
 // The Plan tab: suggested sessions, tests, weekly classes and study hours.
 
-import { state } from './store.js';
+import { state, update } from './store.js';
 import { esc, CROSS } from './tasks.js';
 import { examPlan, addExam, removeExam, changeGoal } from './exams.js';
 import { planDays, addBlock, removeBlock, changePlan, skipSuggestion, setAbToday, abDay, fmtTime, toMin, dateKey, DAY_NAMES } from './plan.js';
 import { buildIcs } from './ics.js';
 
 const WEEK = [1, 2, 3, 4, 5, 6, 0]; // Monday first
-const SHOW_DAYS = 3; // days listed under "Coming up"; Add to Calendar covers a week
 let pickedDays = [1, 2, 3, 4, 5];
+
+const EXPAND_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>';
+const SHRINK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h6V4M20 14h-6v6M10 10 3 3M14 14l7 7"/></svg>';
+
+// Expanded is a big-screen choice; the html.desktop class says whether this is a big screen.
+const isExpanded = () => state.settings.planWide && document.documentElement.classList.contains('desktop');
 
 function dayTitle(key) {
   const today = new Date();
@@ -38,17 +43,26 @@ function setValue(input, value) {
 }
 
 export function renderPlan(root) {
+  const expanded = isExpanded();
+  document.documentElement.classList.toggle('plan-wide', expanded);
+  const expandBtn = root.querySelector('#planExpand');
+  expandBtn.innerHTML = expanded ? SHRINK_ICON : EXPAND_ICON;
+  expandBtn.setAttribute('aria-label', expanded ? 'Shrink' : 'Expand');
+
+  // Three days fit the narrow panel; expanded shows the whole week Add to Calendar covers.
   const plan = planDays();
-  const days = [...new Set(plan.map(p => p.day))].slice(0, SHOW_DAYS);
+  const days = [...new Set(plan.map(p => p.day))].slice(0, expanded ? 7 : 3);
   root.querySelector('#planList').innerHTML = days.map(key => `
-    <h3 class="day-title">${dayTitle(key)}</h3>
-    <ul class="plan-list">${plan.filter(p => p.day === key).map(p => `
-      <li data-id="${p.id}">
-        <span class="when">${fmtTime(p.start)}</span>
-        ${p.cls ? `<span class="tag">${esc(p.cls)}</span>` : `<span class="what">${esc(p.label)}</span>`}
-        <button class="icon-btn small" data-skip aria-label="Remove this session">${CROSS}</button>
-      </li>`).join('')}
-    </ul>`).join('');
+    <div class="plan-day">
+      <h3 class="day-title">${dayTitle(key)}</h3>
+      <ul class="plan-list">${plan.filter(p => p.day === key).map(p => `
+        <li data-id="${p.id}">
+          <span class="when">${fmtTime(p.start)}</span>
+          ${p.cls ? `<span class="tag">${esc(p.cls)}</span>` : `<span class="what">${esc(p.label)}</span>`}
+          <button class="icon-btn small" data-skip aria-label="Remove this session">${CROSS}</button>
+        </li>`).join('')}
+      </ul>
+    </div>`).join('');
   root.querySelector('#planEmpty').hidden = plan.length > 0;
   root.querySelector('#planEmpty').textContent = 'No free time in your study hours for the next week';
   root.querySelector('#calBtn').hidden = plan.length === 0;
@@ -117,6 +131,7 @@ export function bindPlan(root, { toast }) {
   const $ = sel => root.querySelector(sel);
 
   $('#calBtn').addEventListener('click', addToCalendar);
+  $('#planExpand').addEventListener('click', () => update(s => { s.settings.planWide = !s.settings.planWide; }));
   $('#planList').addEventListener('click', e => {
     const id = e.target.closest('[data-skip]') && e.target.closest('li')?.dataset.id;
     if (id) skipSuggestion(id);

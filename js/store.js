@@ -7,7 +7,7 @@ export function defaults() {
     version: 1,
     settings: {
       focusMin: 25, shortMin: 5, longMin: 15, longEvery: 4, autoStart: false, mode: 'stand',
-      sky: 'auto', rain: false, sound: 'off', volume: 0.6,
+      sky: 'auto', rain: false, sound: 'off', volume: 0.6, planWide: false,
     },
     timer: { phase: 'focus', status: 'idle', length: 25 * 60000, remaining: 25 * 60000, endsAt: 0, cycle: 0, leftAt: 0, seenAt: 0 },
     tasks: [],

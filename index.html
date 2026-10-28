@@ -76,61 +76,68 @@
     </section>
 
     <section id="view-plan" class="view">
-      <h1>Plan</h1>
-      <div class="row-head"><h2>Coming up</h2><button class="ghost" id="calBtn">Add to Calendar</button></div>
-      <div id="planList"></div>
-      <p class="empty" id="planEmpty">Add your classes and tests below to get a study plan</p>
-
-      <h2>Tests</h2>
-      <form id="examForm" class="card add-task" autocomplete="off">
-        <div class="row">
-          <input id="examName" placeholder="Test or exam" maxlength="60" required>
-          <button class="primary small" type="submit">Add</button>
-        </div>
-        <div class="row">
-          <input id="examClass" placeholder="Class" list="classList" maxlength="24">
-          <input id="examDate" type="date" required aria-label="Test date">
-        </div>
-      </form>
-      <ul class="task-list" id="examList"></ul>
-
-      <h2>Classes</h2>
-      <form id="blockForm" class="card add-task" autocomplete="off">
-        <div class="row">
-          <input id="blockName" placeholder="Class, practice, work…" maxlength="40" required>
-          <button class="primary small" type="submit">Add</button>
-        </div>
-        <div class="days" id="dayPicker"></div>
-        <div class="row">
-          <input id="blockStart" type="time" value="09:00" required aria-label="Starts">
-          <span class="muted">to</span>
-          <input id="blockEnd" type="time" value="10:00" required aria-label="Ends">
-          <select id="blockAB" aria-label="Which days" hidden>
-            <option value="">A & B</option>
-            <option value="A">A days</option>
-            <option value="B">B days</option>
-          </select>
-        </div>
-      </form>
-      <ul class="task-list" id="blockList"></ul>
-
-      <h2>Study hours</h2>
-      <div class="card">
-        <div class="setting"><span>Weekdays</span>
-          <div class="time-range"><input type="time" data-hours="weekday" data-end="0" aria-label="Weekdays from"><span>–</span><input type="time" data-hours="weekday" data-end="1" aria-label="Weekdays until"></div>
-        </div>
-        <div class="setting"><span>Weekends</span>
-          <div class="time-range"><input type="time" data-hours="weekend" data-end="0" aria-label="Weekends from"><span>–</span><input type="time" data-hours="weekend" data-end="1" aria-label="Weekends until"></div>
-        </div>
-        <div class="setting"><span>Daily goal</span>
-          <div class="stepper"><button data-goal="-1" aria-label="Fewer">−</button><b id="goalValue"></b><small>focus</small><button data-goal="1" aria-label="More">+</button></div>
-        </div>
-        <label class="setting"><span>A/B days</span><input type="checkbox" id="abToggle" class="switch"></label>
-        <div class="setting" id="abRow" hidden><span id="abLabel">Today is</span>
-          <div class="pills"><button data-ab="A">A day</button><button data-ab="B">B day</button></div>
-        </div>
+      <div class="view-head">
+        <h1>Plan</h1>
+        <button class="icon-btn small expand-btn" id="planExpand" aria-label="Expand"></button>
       </div>
-      <p class="muted plan-note">Tests come first, then sessions top up to your daily goal, fitted into free time in your study hours.</p>
+      <!-- On a big screen the Plan can expand: the week on the left, everything else on the right. -->
+      <div class="plan-main">
+        <div class="row-head"><h2>Coming up</h2><button class="ghost" id="calBtn">Add to Calendar</button></div>
+        <div id="planList"></div>
+        <p class="empty" id="planEmpty">Add your classes and tests below to get a study plan</p>
+      </div>
+      <div class="plan-side">
+        <h2>Tests</h2>
+        <form id="examForm" class="card add-task" autocomplete="off">
+          <div class="row">
+            <input id="examName" placeholder="Test or exam" maxlength="60" required>
+            <button class="primary small" type="submit">Add</button>
+          </div>
+          <div class="row">
+            <input id="examClass" placeholder="Class" list="classList" maxlength="24">
+            <input id="examDate" type="date" required aria-label="Test date">
+          </div>
+        </form>
+        <ul class="task-list" id="examList"></ul>
+
+        <h2>Classes</h2>
+        <form id="blockForm" class="card add-task" autocomplete="off">
+          <div class="row">
+            <input id="blockName" placeholder="Class, practice, work…" maxlength="40" required>
+            <button class="primary small" type="submit">Add</button>
+          </div>
+          <div class="days" id="dayPicker"></div>
+          <div class="row">
+            <input id="blockStart" type="time" value="09:00" required aria-label="Starts">
+            <span class="muted">to</span>
+            <input id="blockEnd" type="time" value="10:00" required aria-label="Ends">
+            <select id="blockAB" aria-label="Which days" hidden>
+              <option value="">A & B</option>
+              <option value="A">A days</option>
+              <option value="B">B days</option>
+            </select>
+          </div>
+        </form>
+        <ul class="task-list" id="blockList"></ul>
+
+        <h2>Study hours</h2>
+        <div class="card">
+          <div class="setting"><span>Weekdays</span>
+            <div class="time-range"><input type="time" data-hours="weekday" data-end="0" aria-label="Weekdays from"><span>–</span><input type="time" data-hours="weekday" data-end="1" aria-label="Weekdays until"></div>
+          </div>
+          <div class="setting"><span>Weekends</span>
+            <div class="time-range"><input type="time" data-hours="weekend" data-end="0" aria-label="Weekends from"><span>–</span><input type="time" data-hours="weekend" data-end="1" aria-label="Weekends until"></div>
+          </div>
+          <div class="setting"><span>Daily goal</span>
+            <div class="stepper"><button data-goal="-1" aria-label="Fewer">−</button><b id="goalValue"></b><small>focus</small><button data-goal="1" aria-label="More">+</button></div>
+          </div>
+          <label class="setting"><span>A/B days</span><input type="checkbox" id="abToggle" class="switch"></label>
+          <div class="setting" id="abRow" hidden><span id="abLabel">Today is</span>
+            <div class="pills"><button data-ab="A">A day</button><button data-ab="B">B day</button></div>
+          </div>
+        </div>
+        <p class="muted plan-note">Tests come first, then sessions top up to your daily goal, fitted into free time in your study hours.</p>
+      </div>
     </section>
 
     <section id="view-stats" class="view">
