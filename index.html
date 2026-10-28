@@ -182,7 +182,9 @@
           </div>
         </div>
         <div class="setting"><span>Guided Access</span><button class="ghost" id="guideBtn">How to</button></div>
-        <div class="setting"><span>Spare key</span><button class="ghost" id="spareBtn">Show</button></div>
+        <div class="setting"><span>Spare key</span>
+          <div class="btn-row"><button class="ghost" id="spareNewBtn" hidden>Set new</button><button class="ghost" id="spareBtn">Show</button></div>
+        </div>
       </div>
       <p class="muted plan-note" id="strictNote"></p>
 
@@ -257,6 +259,23 @@
       </div>
       <button class="primary" id="spareClose">Back to focus</button>
       <button class="hold-btn" id="spareHold"><span class="fill"></span><span>Emergency: hold to show now</span></button>
+    </div>
+  </div>
+
+  <div class="sheet" id="rotate" hidden>
+    <div class="sheet-card" role="dialog" aria-labelledby="rotateTitle">
+      <h1 id="rotateTitle">Time for a new code</h1>
+      <p class="muted">Your Guided Access code was shown, so it's not much of a lock anymore. Swap it in a few taps:</p>
+      <ol>
+        <li>Open <b>Settings › Accessibility › Guided Access › Passcode Settings</b>.</li>
+        <li>Tap <b>Set Guided Access Passcode</b>. If it asks for your current code, it's <b id="rotateOld"></b>.</li>
+        <li>Enter exactly this new code:
+          <span class="code-row"><b class="code" id="rotateCode"></b><button class="ghost" id="rotateNew">New code</button></span>
+        </li>
+        <li>Update your note, and text the new code to your parent or friend.</li>
+      </ol>
+      <button class="primary" id="rotateSaved">I've set this code</button>
+      <button class="ghost guide-later" id="rotateLater">Later</button>
     </div>
   </div>
 

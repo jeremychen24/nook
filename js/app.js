@@ -10,7 +10,7 @@ import { award, wilt, water, buy, place, owns, priceOf, decorFor, switchScene, W
 import { ITEMS } from './decor.js';
 import { Painter, makeCanvas } from './pixel.js';
 import { openQuit, closeQuit, renderQuit, bindQuit, inFocus } from './quit.js';
-import { saveSpareKey, openSpare, bindSpare } from './spare.js';
+import { saveSpareKey, openSpare, bindSpare, randomCode, spareKeySeen } from './spare.js';
 import { nextSession } from './plan.js';
 import { renderPlan, bindPlan, whenText } from './planview.js';
 
@@ -256,14 +256,10 @@ on('abandoned', () => {
 
 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-// A fresh random six-digit code each time the guide opens, to use as the Guided Access
-// passcode. It's never saved, so the paper copy is the only way back out.
+// A fresh random code each time the guide opens, to use as the Guided Access passcode.
+// It's only saved (as the spare key) when the user says they've set it.
 function newGuideCode() {
-  let code;
-  do {
-    code = Array.from(crypto.getRandomValues(new Uint8Array(6)), b => b % 10).join('');
-  } while (/^(\d)\1+$/.test(code) || '0123456789'.includes(code) || '9876543210'.includes(code));
-  $('#guideCode').textContent = code;
+  $('#guideCode').textContent = randomCode();
 }
 
 function openGuide() {
@@ -285,6 +281,22 @@ $('#guideSaved').addEventListener('click', () => {
   toast('Spare key saved in Settings');
 });
 $('#spareBtn').addEventListener('click', openSpare);
+
+// After the spare key has been shown, suggest swapping to a new code.
+function openRotate() {
+  $('#rotateOld').textContent = state.spareKey.code;
+  $('#rotateCode').textContent = randomCode();
+  $('#rotate').hidden = false;
+}
+
+$('#spareNewBtn').addEventListener('click', openRotate);
+$('#rotateNew').addEventListener('click', () => { $('#rotateCode').textContent = randomCode(); });
+$('#rotateLater').addEventListener('click', () => { $('#rotate').hidden = true; });
+$('#rotateSaved').addEventListener('click', () => {
+  saveSpareKey($('#rotateCode').textContent);
+  $('#rotate').hidden = true;
+  toast('New spare key saved');
+});
 
 // Scene
 
@@ -599,6 +611,7 @@ function renderSettings() {
   const hasKey = Boolean(state.spareKey.code);
   $('#spareBtn').disabled = !hasKey;
   $('#spareBtn').textContent = hasKey ? 'Show' : 'None saved';
+  $('#spareNewBtn').hidden = !spareKeySeen();
 }
 
 $('#view-settings').addEventListener('click', e => {
@@ -674,6 +687,7 @@ syncLayout();
 renderAll();
 syncWakeLock();
 if (isIOS && !state.seenGuide) openGuide();
+else if (spareKeySeen()) openRotate(); // the code was shown last time; offer a new one
 
 let lastMinute = new Date().getMinutes();
 setInterval(() => {
