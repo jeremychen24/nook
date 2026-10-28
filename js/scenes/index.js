@@ -4,12 +4,16 @@ import { Painter, loop, makeCanvas } from '../pixel.js';
 import * as cafe from './cafe.js';
 import * as library from './library.js';
 import * as classroom from './classroom.js';
+import * as train from './train.js';
+import * as rooftop from './rooftop.js';
 
 // price is in coins; slots and defaults say where decorations go and what's there to start.
 export const SCENES = {
   cafe: { name: 'Café', price: 0, slots: cafe.SLOTS, defaults: cafe.DEFAULTS, create: cafe.createCafe },
   library: { name: 'Library', price: 200, slots: library.SLOTS, defaults: library.DEFAULTS, create: library.createLibrary },
   classroom: { name: 'Classroom', price: 200, slots: classroom.SLOTS, defaults: classroom.DEFAULTS, create: classroom.createClassroom },
+  train: { name: 'Train', price: 300, slots: train.SLOTS, defaults: train.DEFAULTS, create: train.createTrain },
+  rooftop: { name: 'Rooftop', price: 300, slots: rooftop.SLOTS, defaults: rooftop.DEFAULTS, create: rooftop.createRooftop },
 };
 const TIMES = ['dawn', 'day', 'sunset', 'dusk', 'night'];
 
