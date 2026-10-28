@@ -3,7 +3,7 @@
 import { state, update } from './store.js';
 import { esc, CROSS } from './tasks.js';
 import { examPlan, addExam, removeExam, changeGoal } from './exams.js';
-import { planDays, addBlock, removeBlock, changePlan, skipSuggestion, setAbToday, abDay, fmtTime, toMin, dateKey, DAY_NAMES } from './plan.js';
+import { planDays, addBlock, removeBlock, changePlan, skipSuggestion, setAbToday, abDay, fmtTime, toMin, dateKey, DAY_NAMES, notExported, markExported } from './plan.js';
 import { buildIcs } from './ics.js';
 
 const WEEK = [1, 2, 3, 4, 5, 6, 0]; // Monday first
@@ -65,7 +65,10 @@ export function renderPlan(root) {
     </div>`).join('');
   root.querySelector('#planEmpty').hidden = plan.length > 0;
   root.querySelector('#planEmpty').textContent = 'No free time in your study hours for the next week';
+  // The calendar button adds only what isn't there yet; once everything is, it offers to add it all again.
+  const fresh = notExported(planDays(state, Date.now(), 7)).length;
   root.querySelector('#calBtn').hidden = plan.length === 0;
+  root.querySelector('#calBtn').textContent = fresh ? `Add to Calendar · ${fresh} new` : 'Add all again';
 
   root.querySelector('#examList').innerHTML = state.exams.map(exam => {
     const pace = examPlan(exam, state.sessions);
@@ -111,10 +114,15 @@ export function renderPlan(root) {
   root.querySelectorAll('[data-ab]').forEach(b => b.classList.toggle('on', b.dataset.ab === letter));
 }
 
-// Adds the next week of suggestions to the phone's calendar. iPhones open a calendar file
-// straight into Calendar's "Add All" screen; computers download it to open in any calendar app.
+// Adds the next week of suggestions to the phone's calendar: only ones not added before, or all
+// of them again when everything was (in case the events were deleted). iPhones open a calendar
+// file straight into Calendar's "Add All" screen; computers download it to open in any calendar app.
 function addToCalendar() {
-  const ics = buildIcs(planDays(state, Date.now(), 7));
+  const week = planDays(state, Date.now(), 7);
+  const fresh = notExported(week);
+  const sessions = fresh.length ? fresh : week;
+  markExported(sessions.map(p => p.id));
+  const ics = buildIcs(sessions);
   const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   if (iOS) {
     location.href = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;

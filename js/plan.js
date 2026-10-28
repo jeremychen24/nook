@@ -134,6 +134,15 @@ export function skipSuggestion(id) {
   update(s => { s.plan.skipped = [...s.plan.skipped.filter(k => k >= today), id]; });
 }
 
+// Sessions not yet sent to the calendar, so adding again doesn't duplicate events.
+export const notExported = (sessions, exported = state.plan.exported) => sessions.filter(p => !exported.includes(p.id));
+
+// Remembers sessions sent to the calendar. Past days are dropped so the list stays short.
+export function markExported(ids, now = Date.now()) {
+  const today = dateKey(new Date(now));
+  update(s => { s.plan.exported = [...new Set([...s.plan.exported.filter(k => k >= today), ...ids])]; });
+}
+
 // Marks today (or the next school day, on a weekend) as an A or B day.
 export function setAbToday(letter, now = Date.now()) {
   const d = new Date(now);

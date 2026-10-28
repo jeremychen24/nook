@@ -28,6 +28,7 @@ export function defaults() {
       hours: { weekday: ['15:00', '22:00'], weekend: ['10:00', '20:00'] }, // when you're willing to study
       ab: { on: false, date: '', letter: 'A' }, // A/B days: `date` was a `letter` day
       skipped: [], // ids of suggestions the user removed
+      exported: [], // ids of suggestions already sent to the calendar
     },
   };
 }

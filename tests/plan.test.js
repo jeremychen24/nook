@@ -75,3 +75,14 @@ test('calendar file has UTC times, an alert, escaped text and CRLF lines', () =>
   assert.match(ics, /TRIGGER:-PT5M/);
   assert.ok(ics.split('\r\n').every(line => line.length <= 75));
 });
+
+test('only sessions not yet sent to the calendar are new, and old entries are dropped', async () => {
+  const { notExported, markExported } = await import('../js/plan.js');
+  const week = planDays(state, at(27, 10), 2);
+  markExported(week.slice(0, 3).map(p => p.id), at(27, 10));
+  assert.equal(notExported(week).length, week.length - 3);
+  state.plan.exported.push('2026-10-20T15:00'); // a week ago
+  markExported([], at(27, 10));
+  assert.ok(!state.plan.exported.includes('2026-10-20T15:00'));
+  assert.equal(state.plan.exported.length, 3);
+});
