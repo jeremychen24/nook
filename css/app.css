@@ -42,6 +42,18 @@ body {
   user-select: none;
 }
 
+/* On a computer or tablet, show the app as a phone-width column. The transform makes the
+   column the frame for fixed-position pieces (sheets, lock screen, toasts) so they stay inside it. */
+@media (min-width: 560px) {
+  html { background: #0d0e10; }
+  body {
+    max-width: 440px;
+    margin: 0 auto;
+    transform: translateZ(0);
+    box-shadow: 0 0 0 1px var(--line), 0 24px 80px rgba(0, 0, 0, .5);
+  }
+}
+
 button {
   font: inherit;
   color: inherit;
