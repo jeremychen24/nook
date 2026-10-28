@@ -250,15 +250,47 @@ main { flex: 1; position: relative; overflow: hidden; }
 
 .controls { display: flex; align-items: center; gap: 28px; margin-top: 6px; }
 
-/* Short screens (phones in Safari, whose toolbars take height): tighter timer area so the
-   scene gets more room. */
-@media (max-height: 760px) {
-  html:not(.desktop) .focus-ui { gap: 9px; padding: 6px 20px 14px; }
-  html:not(.desktop) .time { font-size: clamp(54px, 11vh, 80px); }
-  html:not(.desktop) .controls { margin-top: 0; }
-  html:not(.desktop) .focus-ui .primary { padding: 12px 0; }
+/* The phase name with the session dots beside it. */
+.phase-row { display: flex; align-items: center; gap: 10px; }
+
+/* Phones: the scene tucks 40px under the top of the timer area, where it has already faded
+   into the background, so the picture gets that height back. */
+html:not(.desktop) .stage { margin-bottom: -40px; }
+html:not(.desktop) .focus-ui { z-index: 1; }
+
+/* Short phone screens (Safari's toolbars take a lot of height): a compact timer area so the
+   scene gets at least half the screen. The task chip and the Stand/Face-down icons share a row. */
+@media (max-height: 800px) {
+  html:not(.desktop) .focus-ui {
+    display: grid;
+    grid-template-columns: 1fr auto auto 1fr;
+    grid-template-areas:
+      "phase phase phase phase"
+      "time time time time"
+      "next next next next"
+      ". chips mode ."
+      "controls controls controls controls";
+    justify-items: center;
+    align-items: center;
+    gap: 6px 8px;
+    padding: 0 16px 10px;
+  }
+  html:not(.desktop) .phase-row { grid-area: phase; }
+  html:not(.desktop) .time { grid-area: time; font-size: clamp(48px, 10vh, 76px); }
+  html:not(.desktop) #coach,
+  html:not(.desktop) #nextUp { grid-area: next; margin: 0; }
+  html:not(.desktop) .chip-row { grid-area: chips; }
+  html:not(.desktop) .mode { grid-area: mode; }
+  html:not(.desktop) .controls { grid-area: controls; margin-top: 4px; gap: 24px; }
+  html:not(.desktop) .mode button { padding: 6px 9px; }
+  html:not(.desktop) .mode button span { display: none; }
+  html:not(.desktop) .next-up { padding: 0; background: none; }
+  html:not(.desktop) .focus-ui .primary { padding: 11px 0; width: 124px; }
   html:not(.desktop) .focus-ui .icon-btn:not(.small) { width: 40px; height: 40px; }
-  html:not(.desktop) .mode button { padding: 5px 11px; }
+  html:not(.desktop) .note-btn { width: 34px; height: 34px; }
+  html:not(.desktop) .tabs { padding-top: 4px; }
+  html:not(.desktop) .tabs button { gap: 1px; padding: 3px 8px; font-size: 10px; }
+  html:not(.desktop) .tabs svg { width: 20px; height: 20px; }
 }
 
 /* Face-down lock screen: pure black so an OLED screen is effectively off. */
