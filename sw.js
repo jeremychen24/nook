@@ -1,6 +1,6 @@
 // Network first so updates show up right away; the cache keeps the app working offline.
 
-const CACHE = 'nook-v6';
+const CACHE = 'nook-v7';
 const SHELL = [
   './',
   'index.html',
@@ -41,11 +41,18 @@ self.addEventListener('activate', e => {
   );
 });
 
+// GitHub Pages tells browsers to reuse files for 10 minutes. 'no-cache' asks the server whether
+// each file changed (a tiny check when it hasn't), so a new version shows on the next open.
+// Page loads can't take extra fetch options, so those are fetched by URL.
+const fresh = req => (req.mode === 'navigate'
+  ? fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' })
+  : fetch(req, { cache: 'no-cache' }));
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(req)
+    fresh(req)
       .then(res => {
         if (res.ok) {
           const copy = res.clone();
