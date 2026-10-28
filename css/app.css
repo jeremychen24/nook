@@ -450,8 +450,55 @@ main { flex: 1; position: relative; overflow: hidden; }
 
 /* Exams */
 
-#examClass, #examDate { flex: 1; min-width: 0; width: auto; }
-#examDate { color-scheme: dark; }
+/* The date gets the wider share so "mm/dd/yyyy" isn't cut off. */
+#examClass { flex: 1; min-width: 0; }
+#examDate { flex: 1.4; min-width: 0; width: auto; color-scheme: dark; }
+
+/* Plan */
+
+.plan-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.plan-list li { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 12px; background: var(--surface); }
+.plan-list .when { width: 72px; flex: none; font-variant-numeric: tabular-nums; }
+.plan-list .what { color: var(--muted); }
+.plan-list li > :nth-child(2) { margin-right: auto; }
+.day-title { margin: 14px 2px 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+#planList .day-title:first-child { margin-top: 4px; }
+.plan-note { margin: 10px 2px 0; font-size: 13px; }
+
+.days { display: flex; gap: 6px; }
+.days button {
+  flex: 1;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 13px;
+}
+.days button.on { background: var(--text); color: var(--bg); }
+#blockForm input[type="time"] { flex: 1; min-width: 0; color-scheme: dark; }
+select {
+  font: inherit;
+  font-size: 16px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 8px;
+}
+select[hidden] { display: none; }
+/* The two times share whatever room the row has, so they never spill out of the card. */
+.time-range { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 6px; color: var(--muted); }
+.time-range input { flex: 1; min-width: 0; max-width: 124px; padding: 8px 6px; color-scheme: dark; }
+/* Chrome and Edge put a clock icon inside time boxes; there's no room for it here. */
+.time-range input::-webkit-calendar-picker-indicator { display: none; }
+
+.next-up {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .05);
+  color: var(--muted);
+  font-size: 13px;
+}
 .exam {
   display: flex;
   align-items: center;

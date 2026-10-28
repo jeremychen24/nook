@@ -21,6 +21,13 @@ export function defaults() {
     wilted: false,
     notes: [], // thoughts parked during focus: { id, text, at }
     exams: [], // { id, name, cls, date: 'YYYY-MM-DD', goal, createdAt }
+    schedule: [], // weekly classes and commitments: { id, name, days: [0–6, Sun = 0], start: 'HH:MM', end: 'HH:MM', ab: '' | 'A' | 'B' }
+    plan: {
+      goal: 4, // focus sessions a day at least; tests can add more
+      hours: { weekday: ['15:00', '22:00'], weekend: ['10:00', '20:00'] }, // when you're willing to study
+      ab: { on: false, date: '', letter: 'A' }, // A/B days: `date` was a `letter` day
+      skipped: [], // ids of suggestions the user removed
+    },
   };
 }
 
@@ -34,6 +41,12 @@ function normalize(data) {
     timer: { ...base.timer, ...data.timer },
     tasks: Array.isArray(data.tasks) ? data.tasks : [],
     sessions: Array.isArray(data.sessions) ? data.sessions : [],
+    plan: {
+      ...base.plan,
+      ...data.plan,
+      hours: { ...base.plan.hours, ...data.plan?.hours },
+      ab: { ...base.plan.ab, ...data.plan?.ab },
+    },
   };
 }
 

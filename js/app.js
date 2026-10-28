@@ -9,11 +9,14 @@ import { lockView, armFaceDown, release, syncWakeLock, onLockChange, canStayAwak
 import { award, wilt, water, buy, place, owns, priceOf, decorFor, switchScene, WATER_COST } from './rewards.js';
 import { ITEMS } from './decor.js';
 import { Painter, makeCanvas } from './pixel.js';
+import { nextSession } from './plan.js';
+import { renderPlan, bindPlan, whenText } from './planview.js';
 
 const $ = sel => document.querySelector(sel);
 const LABELS = { focus: 'Focus', short: 'Short break', long: 'Long break' };
 const STEPS = { focusMin: [5, 90, 5], shortMin: [1, 30, 1], longMin: [5, 60, 5], longEvery: [2, 8, 1] };
 const tasksView = $('#view-tasks');
+const planView = $('#view-plan');
 
 // Tabs
 
@@ -95,6 +98,11 @@ function renderFocus() {
   $('#notesChip').hidden = !onBreak || !notes;
   $('#notesChip').textContent = `${notes} parked ${notes === 1 ? 'thought' : 'thoughts'}`;
   chip.hidden = onBreak && notes > 0;
+
+  // Between sessions, the next planned one from the Plan tab.
+  const next = t.phase === 'focus' && t.status === 'idle' ? nextSession() : null;
+  $('#nextUp').hidden = !next;
+  if (next) $('#nextUp').textContent = `Next · ${whenText(next)} · ${next.label}`;
   $('#noteBtn').hidden = onBreak;
 
   // The mode can only change between sessions, and only matters for focus.
@@ -165,6 +173,7 @@ $('#skipBtn').addEventListener('click', () => {
   timer.skip();
 });
 $('#taskChip').addEventListener('click', () => show('tasks'));
+$('#nextUp').addEventListener('click', () => show('plan'));
 
 $('#modePicker').addEventListener('click', e => {
   const btn = e.target.closest('[data-mode]');
@@ -567,6 +576,7 @@ $('#importInput').addEventListener('change', async e => {
 // Start up
 
 function renderAll() {
+  renderPlan(planView);
   renderFocus();
   renderTasks(tasksView);
   renderSettings();
@@ -583,6 +593,7 @@ subscribe(() => {
 });
 onLockChange(renderFocus);
 bindTasks(tasksView);
+bindPlan(planView, { toast });
 // Scenes became something you buy; anyone on a locked one goes back to the café.
 if (!owns(state.scene)) update(s => { s.scene = 'cafe'; });
 timer.checkReturn(); // a session left running when the app was closed
@@ -594,11 +605,18 @@ renderAll();
 syncWakeLock();
 if (isIOS && !state.seenGuide) $('#guide').hidden = false;
 
+let lastMinute = new Date().getMinutes();
 setInterval(() => {
   timer.tick();
   renderTime();
   const t = state.timer;
   if (t.phase === 'focus' && t.status === 'running' && Date.now() - t.seenAt > 5000) timer.markSeen();
+  // Suggestions and the next-up line depend on the clock, so refresh them each minute.
+  if (new Date().getMinutes() !== lastMinute) {
+    lastMinute = new Date().getMinutes();
+    renderFocus();
+    renderPlan(planView);
+  }
 }, 250);
 
 // Leaving Nook during a focus session ends it after timer.GRACE.

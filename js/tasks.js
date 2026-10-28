@@ -2,10 +2,9 @@
 // Session counts come from the session log, not a stored counter.
 
 import { state, update, uid } from './store.js';
-import { examPlan, addExam, removeExam, changeGoal } from './exams.js';
 
 const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-const CROSS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+export const CROSS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>';
 
 let filter = null; // class shown in the list, or null for all
 
@@ -66,7 +65,7 @@ export const sessionsFor = id => state.sessions.filter(x => x.ok && x.taskId ===
 export const classes = () =>
   [...new Set(state.tasks.map(t => t.cls).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
-const esc = str =>
+export const esc = str =>
   String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function renderTasks(root) {
@@ -93,26 +92,6 @@ export function renderTasks(root) {
   }).join('');
 
   root.querySelector('#tasksEmpty').hidden = state.tasks.length > 0;
-  renderExams(root);
-}
-
-function renderExams(root) {
-  root.querySelector('#examList').innerHTML = state.exams.map(exam => {
-    const plan = examPlan(exam, state.sessions);
-    const past = plan.days < 0;
-    const when = past ? 'Past' : plan.days === 0 ? 'Today' : `${plan.days}`;
-    const pace = plan.left === 0 ? 'Goal reached' : past ? '' : `${plan.perDay} a day`;
-    return `<li class="exam${past ? ' done' : ''}" data-id="${exam.id}">
-      <div class="exam-days"><b>${when}</b>${plan.days > 0 ? `<span>${plan.days === 1 ? 'day' : 'days'}</span>` : ''}</div>
-      <div class="body">
-        <div class="name">${esc(exam.name)}</div>
-        <div class="meta">${exam.cls ? `<span class="tag">${esc(exam.cls)}</span>` : ''}<span class="count">${plan.done}/${exam.goal}</span>${pace ? `<span>${pace}</span>` : ''}</div>
-      </div>
-      <button class="icon-btn small" data-act="less" aria-label="Lower the session goal">−</button>
-      <button class="icon-btn small" data-act="more" aria-label="Raise the session goal">+</button>
-      <button class="icon-btn small" data-act="remove" aria-label="Delete exam">${CROSS}</button>
-    </li>`;
-  }).join('');
 }
 
 export function bindTasks(root) {
@@ -143,26 +122,5 @@ export function bindTasks(root) {
     if (!btn) return;
     filter = btn.dataset.filter || null;
     renderTasks(root);
-  });
-
-  const examName = root.querySelector('#examName');
-  const examClass = root.querySelector('#examClass');
-  const examDate = root.querySelector('#examDate');
-  root.querySelector('#examForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const name = examName.value.trim();
-    if (!name || !examDate.value) return;
-    addExam(name, examClass.value.trim(), examDate.value);
-    examName.value = '';
-    examName.blur();
-  });
-
-  root.querySelector('#examList').addEventListener('click', e => {
-    const id = e.target.closest('.exam')?.dataset.id;
-    const act = e.target.closest('[data-act]')?.dataset.act;
-    if (!id || !act) return;
-    if (act === 'less') changeGoal(id, -1);
-    else if (act === 'more') changeGoal(id, 1);
-    else if (act === 'remove') removeExam(id);
   });
 }

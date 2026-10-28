@@ -29,6 +29,7 @@
         <div class="time" id="time">25:00</div>
         <div class="dots" id="dots"></div>
         <p class="coach" id="coach" hidden></p>
+        <button class="next-up" id="nextUp" hidden></button>
         <div class="chip-row">
           <button class="task-chip" id="taskChip">Pick a task</button>
           <button class="task-chip notes-chip" id="notesChip" hidden></button>
@@ -72,17 +73,64 @@
       <div class="tags" id="classFilter"></div>
       <ul class="task-list" id="taskList"></ul>
       <p class="empty" id="tasksEmpty">No tasks yet</p>
+    </section>
 
-      <h2>Exams</h2>
+    <section id="view-plan" class="view">
+      <h1>Plan</h1>
+      <div class="row-head"><h2>Coming up</h2><button class="ghost" id="calBtn">Add to Calendar</button></div>
+      <div id="planList"></div>
+      <p class="empty" id="planEmpty">Add your classes and tests below to get a study plan</p>
+
+      <h2>Tests</h2>
       <form id="examForm" class="card add-task" autocomplete="off">
-        <input id="examName" placeholder="Exam" maxlength="60" required>
+        <div class="row">
+          <input id="examName" placeholder="Test or exam" maxlength="60" required>
+          <button class="primary small" type="submit">Add</button>
+        </div>
         <div class="row">
           <input id="examClass" placeholder="Class" list="classList" maxlength="24">
-          <input id="examDate" type="date" required>
-          <button class="primary small" type="submit">Add</button>
+          <input id="examDate" type="date" required aria-label="Test date">
         </div>
       </form>
       <ul class="task-list" id="examList"></ul>
+
+      <h2>Classes</h2>
+      <form id="blockForm" class="card add-task" autocomplete="off">
+        <div class="row">
+          <input id="blockName" placeholder="Class, practice, work…" maxlength="40" required>
+          <button class="primary small" type="submit">Add</button>
+        </div>
+        <div class="days" id="dayPicker"></div>
+        <div class="row">
+          <input id="blockStart" type="time" value="09:00" required aria-label="Starts">
+          <span class="muted">to</span>
+          <input id="blockEnd" type="time" value="10:00" required aria-label="Ends">
+          <select id="blockAB" aria-label="Which days" hidden>
+            <option value="">A & B</option>
+            <option value="A">A days</option>
+            <option value="B">B days</option>
+          </select>
+        </div>
+      </form>
+      <ul class="task-list" id="blockList"></ul>
+
+      <h2>Study hours</h2>
+      <div class="card">
+        <div class="setting"><span>Weekdays</span>
+          <div class="time-range"><input type="time" data-hours="weekday" data-end="0" aria-label="Weekdays from"><span>–</span><input type="time" data-hours="weekday" data-end="1" aria-label="Weekdays until"></div>
+        </div>
+        <div class="setting"><span>Weekends</span>
+          <div class="time-range"><input type="time" data-hours="weekend" data-end="0" aria-label="Weekends from"><span>–</span><input type="time" data-hours="weekend" data-end="1" aria-label="Weekends until"></div>
+        </div>
+        <div class="setting"><span>Daily goal</span>
+          <div class="stepper"><button data-goal="-1" aria-label="Fewer">−</button><b id="goalValue"></b><small>focus</small><button data-goal="1" aria-label="More">+</button></div>
+        </div>
+        <label class="setting"><span>A/B days</span><input type="checkbox" id="abToggle" class="switch"></label>
+        <div class="setting" id="abRow" hidden><span id="abLabel">Today is</span>
+          <div class="pills"><button data-ab="A">A day</button><button data-ab="B">B day</button></div>
+        </div>
+      </div>
+      <p class="muted plan-note">Tests come first, then sessions top up to your daily goal, fitted into free time in your study hours.</p>
     </section>
 
     <section id="view-stats" class="view">
@@ -136,6 +184,10 @@
     <button data-view="focus" class="active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2.5h4"/></svg>
       Focus
+    </button>
+    <button data-view="plan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+      Plan
     </button>
     <button data-view="tasks">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".6"/><circle cx="4.5" cy="12" r=".6"/><circle cx="4.5" cy="18" r=".6"/></svg>
