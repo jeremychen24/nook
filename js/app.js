@@ -9,6 +9,7 @@ import { lockView, armFaceDown, release, syncWakeLock, onLockChange, canStayAwak
 import { award, wilt, water, buy, place, owns, priceOf, decorFor, switchScene, WATER_COST } from './rewards.js';
 import { ITEMS } from './decor.js';
 import { Painter, makeCanvas } from './pixel.js';
+import { openQuit, closeQuit, renderQuit, bindQuit, inFocus } from './quit.js';
 import { nextSession } from './plan.js';
 import { renderPlan, bindPlan, whenText } from './planview.js';
 
@@ -93,7 +94,12 @@ function renderFocus() {
   const t = state.timer;
   document.body.dataset.phase = t.phase;
   $('#phaseLabel').textContent = LABELS[t.phase];
-  $('#startBtn').textContent = t.status === 'running' ? 'Pause' : t.status === 'paused' ? 'Resume' : 'Start';
+  // Firm and Strict take Pause away during focus: the only way out is Give up, which asks first.
+  const lockedIn = t.phase === 'focus' && t.status === 'running' && state.settings.strict !== 'gentle';
+  $('#startBtn').textContent = lockedIn ? 'Give up' : t.status === 'running' ? 'Pause' : t.status === 'paused' ? 'Resume' : 'Start';
+  $('#startBtn').classList.toggle('give-up', lockedIn);
+  $('#resetBtn').hidden = lockedIn;
+  $('#skipBtn').hidden = lockedIn;
 
   const every = state.settings.longEvery;
   const filled = t.phase === 'long' ? every : t.cycle % every;
@@ -167,6 +173,8 @@ let warnedAwake = false;
 $('#startBtn').addEventListener('click', async () => {
   unlock();
   const t = state.timer;
+  // During focus this button is Pause (Gentle) or Give up (Firm, Strict); both ask first.
+  if (t.status === 'running' && t.phase === 'focus') return openQuit(state.settings.strict === 'gentle' ? 'pause' : 'reset');
   if (t.status === 'running') return timer.pause();
   if (t.phase === 'focus' && state.settings.mode === 'facedown') {
     if (await armFaceDown()) return;
@@ -179,11 +187,14 @@ $('#startBtn').addEventListener('click', async () => {
     toast('Set Auto-Lock to Never so the screen stays on', 4000);
   }
 });
+// Cutting a focus session short goes through the "are you sure?" screen; breaks don't.
 $('#resetBtn').addEventListener('click', () => {
+  if (inFocus()) return openQuit('reset');
   release();
   timer.reset();
 });
 $('#skipBtn').addEventListener('click', () => {
+  if (inFocus()) return openQuit('skip');
   release();
   timer.skip();
 });
@@ -197,9 +208,8 @@ $('#modePicker').addEventListener('click', e => {
 
 $('#lockEnd').addEventListener('click', e => {
   e.stopPropagation();
-  const wasArmed = lockView() === 'armed';
-  release();
-  if (!wasArmed) timer.reset();
+  if (lockView() !== 'armed') return openQuit('reset');
+  release(); // just cancelling before the flip; nothing to lose
 });
 
 // Tapping the black screen shows the End button for a moment, in case the sensor misreads.
@@ -222,6 +232,7 @@ function toast(msg, ms = 2400) {
 
 on('complete', ({ phase, session }) => {
   release();
+  closeQuit(); // finished while deciding whether to quit
   chime();
   if (!session) return toast('Break over');
   const { base, bonus, streak } = award(session);
@@ -230,6 +241,7 @@ on('complete', ({ phase, session }) => {
 
 on('failed', () => {
   release();
+  closeQuit();
   wilt();
   toast('Session ended: you left Nook. Your plant wilted', 4000);
 });
@@ -243,7 +255,23 @@ on('abandoned', () => {
 
 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-$('#guideBtn').addEventListener('click', () => { $('#guide').hidden = false; });
+// A fresh random six-digit code each time the guide opens, to use as the Guided Access
+// passcode. It's never saved, so the paper copy is the only way back out.
+function newGuideCode() {
+  let code;
+  do {
+    code = Array.from(crypto.getRandomValues(new Uint8Array(6)), b => b % 10).join('');
+  } while (/^(\d)\1+$/.test(code) || '0123456789'.includes(code) || '9876543210'.includes(code));
+  $('#guideCode').textContent = code;
+}
+
+function openGuide() {
+  newGuideCode();
+  $('#guide').hidden = false;
+}
+
+$('#guideBtn').addEventListener('click', openGuide);
+$('#guideNewCode').addEventListener('click', newGuideCode);
 $('#guideDone').addEventListener('click', () => {
   $('#guide').hidden = true;
   if (!state.seenGuide) update(s => { s.seenGuide = true; });
@@ -543,9 +571,22 @@ $('#statCharts').addEventListener('pointerleave', () => document.querySelectorAl
 
 // Settings
 
+const STRICT_NOTES = {
+  gentle: 'Quitting a focus session asks first, then takes a tap.',
+  firm: 'No pausing during focus. Quitting takes a 3-second hold.',
+  strict: 'No pausing during focus. Quitting takes a hold, then typing a sentence.',
+};
+
+$('#strictPicker').addEventListener('click', e => {
+  const btn = e.target.closest('[data-strict]');
+  if (btn) timer.setSetting('strict', btn.dataset.strict);
+});
+
 function renderSettings() {
   for (const key of Object.keys(STEPS)) $(`[data-value="${key}"]`).textContent = state.settings[key];
   $('#autoStart').checked = state.settings.autoStart;
+  $('#strictPicker').querySelectorAll('[data-strict]').forEach(b => b.classList.toggle('on', b.dataset.strict === state.settings.strict));
+  $('#strictNote').textContent = STRICT_NOTES[state.settings.strict];
 }
 
 $('#view-settings').addEventListener('click', e => {
@@ -609,6 +650,7 @@ subscribe(() => {
 onLockChange(renderFocus);
 bindTasks(tasksView);
 bindPlan(planView, { toast });
+bindQuit();
 // Scenes became something you buy; anyone on a locked one goes back to the café.
 if (!owns(state.scene)) update(s => { s.scene = 'cafe'; });
 timer.checkReturn(); // a session left running when the app was closed
@@ -618,12 +660,13 @@ if (state.settings.mode === 'facedown' && state.timer.phase === 'focus' && state
 syncLayout();
 renderAll();
 syncWakeLock();
-if (isIOS && !state.seenGuide) $('#guide').hidden = false;
+if (isIOS && !state.seenGuide) openGuide();
 
 let lastMinute = new Date().getMinutes();
 setInterval(() => {
   timer.tick();
   renderTime();
+  renderQuit();
   const t = state.timer;
   if (t.phase === 'focus' && t.status === 'running' && Date.now() - t.seenAt > 5000) timer.markSeen();
   // Suggestions and the next-up line depend on the clock, so refresh them each minute.

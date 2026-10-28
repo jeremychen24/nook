@@ -287,6 +287,67 @@ main { flex: 1; position: relative; overflow: hidden; }
 .lock[data-view="down"] .lock-msg,
 .lock[data-view="down"]:not(.peek) #lockEnd { display: none; }
 
+/* "Are you sure?" screen for quitting a focus session early */
+.quit {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8, 9, 11, .94);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.quit[hidden] { display: none; }
+.quit-card { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 16px; text-align: center; }
+.quit-line { margin: 0 0 6px; font-size: 22px; font-weight: 500; line-height: 1.35; }
+.quit-progress { display: flex; flex-direction: column; gap: 8px; color: var(--muted); font-size: 14px; }
+.quit-bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.quit-bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.quit-stakes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; color: #e0c27a; font-size: 14px; }
+.quit-stakes:empty { display: none; }
+#quitStay { width: 100%; margin-top: 8px; padding: 15px 0; font-size: 17px; }
+.quit-tap { align-self: center; color: var(--muted); }
+/* Gentle quits with a tap; Firm and Strict with a three-second hold. */
+.quit[data-level="gentle"] #quitHold,
+.quit:not([data-level="gentle"]) #quitTap { display: none; }
+.hold-btn {
+  position: relative;
+  overflow: hidden;
+  padding: 13px 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 15px;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.hold-btn .fill {
+  position: absolute;
+  inset: 0;
+  background: rgba(217, 119, 107, .4);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .25s ease-out;
+}
+.hold-btn.holding .fill { transform: scaleX(1); transition: transform 3s linear; }
+.hold-btn span:last-child { position: relative; }
+.quit-type { display: flex; flex-direction: column; gap: 8px; }
+.quit-type[hidden] { display: none; }
+.quit-type p { margin: 0; color: var(--muted); font-size: 14px; }
+.quit-type .ghost:disabled { opacity: .4; }
+
+/* "Give up" replaces Pause during focus on Firm and Strict. */
+.primary.give-up { background: var(--surface-2); color: var(--muted); font-weight: 500; }
+
+/* The one-time Guided Access code in the guide */
+.code-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.code { font-size: 24px; letter-spacing: .3em; font-variant-numeric: tabular-nums; }
+
 /* Bottom sheet for the Guided Access guide */
 .sheet {
   position: fixed;
