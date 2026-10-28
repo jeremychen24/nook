@@ -2,7 +2,7 @@ import { state, update, subscribe, on, replaceState, exportState } from './store
 import * as timer from './timer.js';
 import { renderTasks, bindTasks, activeTask, addNote, removeNote, noteToTask } from './tasks.js';
 import { unlock, chime, playAmbient, setVolume } from './sounds.js';
-import { computeStats, fmtMinutes, fmtHour, monthGrid, taskTotals } from './stats.js';
+import { computeStats, fmtMinutes, fmtHour, monthGrid, taskTotals, weekReview, weekStart } from './stats.js';
 import { BADGES, BADGE_COINS, checkBadges } from './badges.js';
 import { weekChart, barList, hourChart, monthHeatmap } from './charts.js';
 import { SCENES, mountScene, pauseScene, resumeScene, sceneThumbnail } from './scenes/index.js';
@@ -629,6 +629,7 @@ function renderStats() {
       ${chart(hourChart(s.hours, s.bestHour))}
       <p class="caption">You start the most focus around ${fmtHour(s.bestHour)}</p>`}`;
 
+  $('#reviewBtn').hidden = !hasLastWeek();
   $('#badgeCount').textContent = `${BADGES.filter(b => state.badges[b.id]).length} of ${BADGES.length}`;
   $('#badgeGrid').innerHTML = BADGES.map(b => `
     <div class="badge${state.badges[b.id] ? ' on' : ''}" title="${b.hint}">
@@ -662,6 +663,37 @@ function showTip(e) {
 $('#statCharts').addEventListener('pointerover', showTip);
 $('#statCharts').addEventListener('pointerdown', showTip);
 $('#statCharts').addEventListener('pointerleave', () => document.querySelectorAll('.chart-tip').forEach(t => { t.hidden = true; }));
+
+// Weekly review: a look back at last week, shown on the first visit of a new week.
+
+const fmtDay = ms => new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+const hasLastWeek = () => weekReview(state.sessions).sessions > 0;
+
+function openReview() {
+  const r = weekReview(state.sessions);
+  const diff = r.minutes - r.before;
+  $('#reviewDates').textContent = `${fmtDay(r.start)} – ${fmtDay(r.end)}`;
+  $('#reviewTotal').textContent = fmtMinutes(r.minutes);
+  $('#reviewDelta').textContent = !r.before
+    ? 'of focus'
+    : diff === 0 ? 'the same as the week before' : `${diff > 0 ? '+' : '−'}${fmtMinutes(Math.abs(diff))} on the week before`;
+  const earned = BADGES.filter(b => state.badges[b.id] >= r.start && state.badges[b.id] <= r.end);
+  const rows = [
+    ['Sessions finished', `${r.sessions}${r.finishRate === null ? '' : ` (${Math.round(r.finishRate * 100)}%)`}`],
+    r.bestDay && ['Best day', `${r.bestDay.label} · ${fmtMinutes(r.bestDay.minutes)}`],
+    r.topClass && ['Top class', `${r.topClass.name} · ${fmtMinutes(r.topClass.minutes)}`],
+    earned.length && ['Badges', earned.map(b => b.icon).join(' ')],
+  ].filter(Boolean);
+  const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+  $('#reviewList').innerHTML = rows.map(([k, v]) => `<li><span>${k}</span><span>${esc(v)}</span></li>`).join('');
+  $('#reviewLine').textContent = !r.before
+    ? 'A good start. Let’s build on it this week.'
+    : diff >= 0 ? 'You beat the week before. Keep it rolling.' : 'A slower week happens. Small sessions still count.';
+  $('#review').hidden = false;
+}
+
+$('#reviewDone').addEventListener('click', () => { $('#review').hidden = true; });
+$('#reviewBtn').addEventListener('click', openReview);
 
 // Settings
 
@@ -770,9 +802,14 @@ announceBadges(checkBadges()); // badges already earned by existing history
 maybeRemindBackup();
 navigator.storage?.persist?.().catch(() => {}); // ask the browser not to clear Nook's data
 syncWakeLock();
+// At most one sheet on opening, most important first.
 if (isIOS && !standalone && !state.seenInstall) $('#install').hidden = false;
 else if (isIOS && !state.seenGuide) openGuide();
 else if (spareKeySeen()) openRotate(); // the code was shown last time; offer a new one
+else if (state.lastReview !== weekStart(Date.now()) && hasLastWeek()) {
+  update(s => { s.lastReview = weekStart(Date.now()); });
+  openReview();
+}
 
 let lastMinute = new Date().getMinutes();
 setInterval(() => {

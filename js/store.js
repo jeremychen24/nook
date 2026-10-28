@@ -24,6 +24,7 @@ export function defaults() {
     seenInstall: false, // the Home Screen sheet (iPhone Safari) was dismissed
     lastBackup: 0, // when a backup was last exported
     backupNudgedAt: 0, // when we last reminded about backups
+    lastReview: 0, // start of the week whose review was last shown
     notes: [], // thoughts parked during focus: { id, text, at }
     exams: [], // { id, name, cls, date: 'YYYY-MM-DD', goal, createdAt }
     schedule: [], // weekly classes and commitments: { id, name, days: [0–6, Sun = 0], start: 'HH:MM', end: 'HH:MM', ab: '' | 'A' | 'B' }

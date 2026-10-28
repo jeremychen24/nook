@@ -50,3 +50,25 @@ test('a quit breaks the clean run', () => {
   state.sessions.push(...list);
   assert.equal(badgeContext().bestRun, 6);
 });
+
+test('weekly review looks at last Monday to Sunday and compares with the week before', async () => {
+  const { weekReview, weekStart } = await import('../js/stats.js');
+  const now = at(9, 28, 9); // Wednesday, October 28
+  assert.equal(new Date(weekStart(now)).getDate(), 26); // this week began Monday the 26th
+  const sessions = [
+    done(at(9, 20, 15), { cls: 'BIO' }), done(at(9, 20, 16), { cls: 'BIO' }), // Tuesday the 20th
+    done(at(9, 24, 11), { cls: 'MATH' }), // Saturday the 24th
+    done(at(9, 25, 22), { cls: 'BIO', ok: false }), // Sunday, unfinished
+    done(at(9, 14, 10)), // the week before
+    done(at(9, 26, 10)), // this week, not part of the review
+  ];
+  const r = weekReview(sessions, now);
+  assert.equal(new Date(r.start).getDate(), 19);
+  assert.equal(r.minutes, 75);
+  assert.equal(r.before, 25);
+  assert.equal(r.sessions, 3);
+  assert.equal(r.finishRate, 3 / 4);
+  assert.equal(r.bestDay.minutes, 50);
+  assert.deepEqual(r.topClass, { name: 'BIO', minutes: 50 });
+  assert.equal(weekReview([], now).bestDay, null);
+});

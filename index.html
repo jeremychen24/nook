@@ -143,7 +143,10 @@
     </section>
 
     <section id="view-stats" class="view">
-      <h1>Stats</h1>
+      <div class="view-head">
+        <h1>Stats</h1>
+        <button class="ghost" id="reviewBtn" hidden>Last week</button>
+      </div>
       <div class="stat-grid">
         <div class="stat"><span>Today</span><b id="statToday">0m</b></div>
         <div class="stat"><span>This week</span><b id="statWeek">0m</b></div>
@@ -278,6 +281,17 @@
       </ol>
       <button class="primary" id="rotateSaved">I've set this code</button>
       <button class="ghost guide-later" id="rotateLater">Later</button>
+    </div>
+  </div>
+
+  <div class="sheet" id="review" hidden>
+    <div class="sheet-card" role="dialog" aria-labelledby="reviewTitle">
+      <p class="muted" id="reviewDates"></p>
+      <h1 id="reviewTitle">Your week</h1>
+      <div class="review-hero"><b id="reviewTotal"></b><span id="reviewDelta"></span></div>
+      <ul class="review-list" id="reviewList"></ul>
+      <p class="review-line" id="reviewLine"></p>
+      <button class="primary" id="reviewDone">On to this week</button>
     </div>
   </div>
 

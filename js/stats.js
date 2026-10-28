@@ -109,6 +109,48 @@ export function taskTotals(sessions, tasks, limit = 6) {
     .slice(0, limit);
 }
 
+// Monday 00:00 of the week that `ms` falls in.
+export function weekStart(ms) {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.getTime();
+}
+
+// A look back at last week (Monday to Sunday), with the week before for comparison.
+export function weekReview(sessions, now = Date.now()) {
+  const thisWeek = weekStart(now);
+  const lastWeek = weekStart(thisWeek - 1);
+  const weekBefore = weekStart(lastWeek - 1);
+  const within = (from, to) => sessions.filter(s => s.end >= from && s.end < to);
+  const all = within(lastWeek, thisWeek);
+  const done = all.filter(s => s.ok);
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const from = new Date(lastWeek);
+    from.setDate(from.getDate() + i);
+    const to = new Date(from);
+    to.setDate(to.getDate() + 1);
+    return { label: from.toLocaleDateString(undefined, { weekday: 'long' }), minutes: minutesOf(done.filter(s => s.end >= from && s.end < to)) };
+  });
+  const bestDay = days.reduce((best, d) => (d.minutes > best.minutes ? d : best), days[0]);
+
+  const byClass = new Map();
+  for (const s of done) if (s.cls) byClass.set(s.cls, (byClass.get(s.cls) ?? 0) + s.ms);
+  const [topName, topMs] = [...byClass].sort((a, b) => b[1] - a[1])[0] ?? [];
+
+  return {
+    start: lastWeek,
+    end: thisWeek - 1,
+    minutes: minutesOf(done),
+    before: minutesOf(within(weekBefore, lastWeek).filter(s => s.ok)),
+    sessions: done.length,
+    finishRate: all.length ? done.length / all.length : null,
+    bestDay: bestDay.minutes ? bestDay : null,
+    topClass: topName ? { name: topName, minutes: Math.round(topMs / MIN) } : null,
+  };
+}
+
 // The most days in a row ever with a finished focus session.
 export function longestStreak(sessions) {
   const days = [...new Set(sessions.filter(s => s.ok).map(s => dayKey(s.end)))].sort();
