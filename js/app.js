@@ -38,8 +38,18 @@ function syncSceneMotion() {
 const wideQuery = matchMedia('(min-width: 900px) and (min-aspect-ratio: 1/1)');
 const isWide = () => wideQuery.matches;
 
-// Scene pixels across: 180 on phones; on wide screens enough to fill the window without stretching.
-const sceneWidth = () => (isWide() ? Math.min(560, Math.max(180, Math.round((196 * innerWidth) / innerHeight))) : 180);
+// Scene pixels across (it's always 196 tall). Wide screens: enough to fill the window. Phones: 180,
+// unless the space above the timer is too short for that, in which case the scene is drawn wider
+// so all of it fits instead of being cropped.
+function sceneWidth() {
+  const fill = (w, h) => Math.min(560, Math.max(180, Math.round((196 * w) / h)));
+  if (isWide()) return fill(innerWidth, innerHeight);
+  const stage = $('#stage');
+  const w = stage.clientWidth;
+  const h = stage.clientHeight;
+  if (!w || !h) return null; // hidden behind another tab: keep the scene as it is
+  return h < (w * 196) / 180 ? fill(w, h) : 180;
+}
 
 function syncLayout() {
   document.documentElement.classList.toggle('desktop', isWide());
@@ -51,11 +61,15 @@ function syncLayout() {
 }
 
 wideQuery.addEventListener('change', syncLayout);
+// The space for the scene changes with the window and with what the timer area shows
+// (a break tip, the next-session line), so redraw when it does.
 let resizeTimer;
-addEventListener('resize', () => {
+const resized = () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(syncScene, 200);
-});
+  resizeTimer = setTimeout(syncScene, 150);
+};
+addEventListener('resize', resized);
+new ResizeObserver(resized).observe($('#stage'));
 
 $('.tabs').addEventListener('click', e => {
   const btn = e.target.closest('button[data-view]');
@@ -252,7 +266,7 @@ function sceneEnv(sceneId) {
 
 // Redraws the scene when it changes, or when the window needs a different width.
 function syncScene() {
-  const width = sceneWidth();
+  const width = sceneWidth() ?? (mountedScene ? Number(mountedScene.split(':')[1]) : 180);
   const key = `${state.scene}:${width}`;
   if (key === mountedScene) return;
   mountedScene = key;

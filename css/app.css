@@ -162,16 +162,15 @@ main { flex: 1; position: relative; overflow: hidden; }
 #view-focus { padding: 0; }
 #view-focus.active { display: flex; flex-direction: column; }
 
-/* The scene and its two buttons. Never grows; on short screens it shrinks and crops the top
-   (ceiling) instead of the counter. */
+/* The scene and its two buttons fill the space above the timer. app.js draws the scene wider
+   when that space is short, so the whole scene always fits instead of being cropped. */
 .stage {
   position: relative;
-  flex: 0 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
 }
 .scene { position: relative; flex: none; }
 .scene canvas {
@@ -250,6 +249,17 @@ main { flex: 1; position: relative; overflow: hidden; }
 .mode button:disabled:not(.on) { opacity: .4; }
 
 .controls { display: flex; align-items: center; gap: 28px; margin-top: 6px; }
+
+/* Short screens (phones in Safari, whose toolbars take height): tighter timer area so the
+   scene gets more room. */
+@media (max-height: 760px) {
+  html:not(.desktop) .focus-ui { gap: 9px; padding: 6px 20px 14px; }
+  html:not(.desktop) .time { font-size: clamp(54px, 11vh, 80px); }
+  html:not(.desktop) .controls { margin-top: 0; }
+  html:not(.desktop) .focus-ui .primary { padding: 12px 0; }
+  html:not(.desktop) .focus-ui .icon-btn:not(.small) { width: 40px; height: 40px; }
+  html:not(.desktop) .mode button { padding: 5px 11px; }
+}
 
 /* Face-down lock screen: pure black so an OLED screen is effectively off. */
 .lock {
