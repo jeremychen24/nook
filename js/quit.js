@@ -28,9 +28,9 @@ const NEAR_END_LINES = [
   '{left} minutes. You’ve sat through worse.',
 ];
 
-let action = null; // 'pause' | 'reset' | 'skip' | 'end'
-let holdTimer = 0;
+let action = null; // 'pause' | 'reset' | 'skip'
 let line = '';
+let cancelQuitHold = () => {};
 const $ = sel => document.querySelector(sel);
 
 // A focus session that has started and would be cut short.
@@ -54,7 +54,7 @@ export function openQuit(kind) {
 }
 
 export function closeQuit() {
-  cancelHold();
+  cancelQuitHold();
   action = null;
   $('#quitScreen').hidden = true;
 }
@@ -92,27 +92,31 @@ function confirmQuit() {
   else timer.reset();
 }
 
-// Hold to quit: the bar fills over three seconds; letting go early cancels.
-function startHold(e) {
-  e.preventDefault();
-  if (holdTimer) return;
-  $('#quitHold').classList.add('holding');
-  holdTimer = setTimeout(() => {
-    holdTimer = 0;
-    $('#quitHold').classList.remove('holding');
-    if (state.settings.strict === 'strict') {
-      $('#quitType').hidden = false;
-      $('#quitPhrase').focus();
-    } else {
-      confirmQuit();
-    }
-  }, HOLD_MS);
-}
-
-function cancelHold() {
-  clearTimeout(holdTimer);
-  holdTimer = 0;
-  $('#quitHold')?.classList.remove('holding');
+// Makes `button` call onDone after being held for three seconds (its .fill bar fills meanwhile);
+// letting go early cancels. Returns a function that cancels a hold in progress.
+export function holdToConfirm(button, onDone) {
+  let pending = 0;
+  const start = e => {
+    e.preventDefault();
+    if (pending) return;
+    button.classList.add('holding');
+    pending = setTimeout(() => {
+      pending = 0;
+      button.classList.remove('holding');
+      onDone();
+    }, HOLD_MS);
+  };
+  const cancel = () => {
+    clearTimeout(pending);
+    pending = 0;
+    button.classList.remove('holding');
+  };
+  button.addEventListener('pointerdown', start);
+  for (const type of ['pointerup', 'pointerleave', 'pointercancel']) button.addEventListener(type, cancel);
+  button.addEventListener('contextmenu', e => e.preventDefault()); // long-press menus on phones
+  button.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) start(e); });
+  button.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') cancel(); });
+  return cancel;
 }
 
 const normalize = s => s.toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, ' ').replace(/[.!]+$/, '').trim();
@@ -121,12 +125,12 @@ export function bindQuit() {
   $('#quitStay').addEventListener('click', closeQuit);
   $('#quitTap').addEventListener('click', confirmQuit);
 
-  const hold = $('#quitHold');
-  hold.addEventListener('pointerdown', startHold);
-  for (const type of ['pointerup', 'pointerleave', 'pointercancel']) hold.addEventListener(type, cancelHold);
-  hold.addEventListener('contextmenu', e => e.preventDefault()); // long-press menus on phones
-  hold.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) startHold(e); });
-  hold.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') cancelHold(); });
+  // Firm quits after the hold; Strict asks for the sentence next.
+  cancelQuitHold = holdToConfirm($('#quitHold'), () => {
+    if (state.settings.strict !== 'strict') return confirmQuit();
+    $('#quitType').hidden = false;
+    $('#quitPhrase').focus();
+  });
 
   $('#quitPhrase').addEventListener('input', e => {
     $('#quitConfirm').disabled = normalize(e.target.value) !== normalize(STRICT_PHRASE);

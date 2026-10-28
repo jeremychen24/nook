@@ -19,6 +19,7 @@ export function defaults() {
     owned: [], // ids of bought decorations and scenes
     decor: {}, // { sceneId: { slotId: itemId } }, on top of each scene's defaults
     wilted: false,
+    spareKey: { code: '', savedAt: 0 }, // copy of the Guided Access passcode, see spare.js
     notes: [], // thoughts parked during focus: { id, text, at }
     exams: [], // { id, name, cls, date: 'YYYY-MM-DD', goal, createdAt }
     schedule: [], // weekly classes and commitments: { id, name, days: [0–6, Sun = 0], start: 'HH:MM', end: 'HH:MM', ab: '' | 'A' | 'B' }

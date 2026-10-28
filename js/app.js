@@ -10,6 +10,7 @@ import { award, wilt, water, buy, place, owns, priceOf, decorFor, switchScene, W
 import { ITEMS } from './decor.js';
 import { Painter, makeCanvas } from './pixel.js';
 import { openQuit, closeQuit, renderQuit, bindQuit, inFocus } from './quit.js';
+import { saveSpareKey, openSpare, bindSpare } from './spare.js';
 import { nextSession } from './plan.js';
 import { renderPlan, bindPlan, whenText } from './planview.js';
 
@@ -276,6 +277,14 @@ $('#guideDone').addEventListener('click', () => {
   $('#guide').hidden = true;
   if (!state.seenGuide) update(s => { s.seenGuide = true; });
 });
+// "I've set this code": keep the spare copy so a lost note can't lock anyone in.
+$('#guideSaved').addEventListener('click', () => {
+  saveSpareKey($('#guideCode').textContent);
+  $('#guide').hidden = true;
+  update(s => { s.seenGuide = true; });
+  toast('Spare key saved in Settings');
+});
+$('#spareBtn').addEventListener('click', openSpare);
 
 // Scene
 
@@ -587,6 +596,9 @@ function renderSettings() {
   $('#autoStart').checked = state.settings.autoStart;
   $('#strictPicker').querySelectorAll('[data-strict]').forEach(b => b.classList.toggle('on', b.dataset.strict === state.settings.strict));
   $('#strictNote').textContent = STRICT_NOTES[state.settings.strict];
+  const hasKey = Boolean(state.spareKey.code);
+  $('#spareBtn').disabled = !hasKey;
+  $('#spareBtn').textContent = hasKey ? 'Show' : 'None saved';
 }
 
 $('#view-settings').addEventListener('click', e => {
@@ -651,6 +663,7 @@ onLockChange(renderFocus);
 bindTasks(tasksView);
 bindPlan(planView, { toast });
 bindQuit();
+bindSpare();
 // Scenes became something you buy; anyone on a locked one goes back to the café.
 if (!owns(state.scene)) update(s => { s.scene = 'cafe'; });
 timer.checkReturn(); // a session left running when the app was closed

@@ -340,7 +340,8 @@ html:not(.desktop) .focus-ui { z-index: 1; }
 .quit-bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
 .quit-stakes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; color: #e0c27a; font-size: 14px; }
 .quit-stakes:empty { display: none; }
-#quitStay { width: 100%; margin-top: 8px; padding: 15px 0; font-size: 17px; }
+.quit-card .primary { width: 100%; padding: 15px 0; font-size: 17px; }
+#quitStay { margin-top: 8px; }
 .quit-tap { align-self: center; color: var(--muted); }
 /* Gentle quits with a tap; Firm and Strict with a three-second hold. */
 .quit[data-level="gentle"] #quitHold,
@@ -375,6 +376,16 @@ html:not(.desktop) .focus-ui { z-index: 1; }
 
 /* "Give up" replaces Pause during focus on Firm and Strict. */
 .primary.give-up { background: var(--surface-2); color: var(--muted); font-weight: 500; }
+
+/* Spare key: a wait (with an emergency hold) during focus, then the code. */
+#spareScreen[data-state="shown"] .spare-wait,
+#spareScreen[data-state="shown"] #spareHold,
+#spareScreen[data-state="waiting"] #spareCode { display: none; }
+.spare-code { margin: 4px 0; font-size: 36px; letter-spacing: .35em; font-variant-numeric: tabular-nums; }
+.spare-wait { display: flex; flex-direction: column; gap: 10px; }
+.spare-wait span { font-size: 30px; font-weight: 300; font-variant-numeric: tabular-nums; }
+.guide-later { display: block; margin: 10px auto 0; }
+#spareBtn:disabled { opacity: .45; cursor: default; }
 
 /* The one-time Guided Access code in the guide */
 .code-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }

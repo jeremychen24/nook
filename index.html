@@ -182,6 +182,7 @@
           </div>
         </div>
         <div class="setting"><span>Guided Access</span><button class="ghost" id="guideBtn">How to</button></div>
+        <div class="setting"><span>Spare key</span><button class="ghost" id="spareBtn">Show</button></div>
       </div>
       <p class="muted plan-note" id="strictNote"></p>
 
@@ -245,6 +246,20 @@
     </div>
   </div>
 
+  <div class="quit" id="spareScreen" data-state="waiting" hidden>
+    <div class="quit-card" role="dialog" aria-labelledby="spareTitle">
+      <p class="quit-line" id="spareTitle">Spare key</p>
+      <p class="muted" id="spareText"></p>
+      <div class="spare-code" id="spareCode"></div>
+      <div class="spare-wait">
+        <span id="spareLeft">5:00</span>
+        <div class="quit-bar"><i id="spareBar"></i></div>
+      </div>
+      <button class="primary" id="spareClose">Back to focus</button>
+      <button class="hold-btn" id="spareHold"><span class="fill"></span><span>Emergency: hold to show now</span></button>
+    </div>
+  </div>
+
   <div class="sheet" id="guide" hidden>
     <div class="sheet-card" role="dialog" aria-labelledby="guideTitle">
       <h1 id="guideTitle">Lock Nook in place</h1>
@@ -252,14 +267,15 @@
       <ol>
         <li>Open <b>Settings › Accessibility › Guided Access</b> and turn it on.</li>
         <li>In <b>Passcode Settings</b>, turn off <b>Face ID</b> (or Touch ID) so only the passcode can end it.</li>
-        <li>Tap <b>Set Guided Access Passcode</b> and use this code:
+        <li>Tap <b>Set Guided Access Passcode</b> and enter exactly this code:
           <span class="code-row"><b class="code" id="guideCode"></b><button class="ghost" id="guideNewCode">New code</button></span>
         </li>
-        <li>Write it on paper and leave it in another room, or give it to a friend. Nook doesn't save it.</li>
+        <li>Write it on paper and leave it in another room, so getting out means getting up. Text it to a parent or friend too, so a lost note can't lock you in.</li>
         <li>In Nook, <b>triple-click the side button</b>, then tap <b>Start</b>.</li>
       </ol>
-      <p class="muted">To get out you'll need the code, which means getting up to fetch it. Usually that's enough to change your mind.</p>
-      <button class="primary" id="guideDone">Got it</button>
+      <p class="muted">Nook keeps a spare copy under <b>Settings › Spare key</b>. During a focus session it takes a 5-minute wait to see it (or an emergency hold), so it's there if you need it but slow if you're just restless.</p>
+      <button class="primary" id="guideSaved">I've set this code</button>
+      <button class="ghost guide-later" id="guideDone">Not now</button>
     </div>
   </div>
 
