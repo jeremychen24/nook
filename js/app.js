@@ -411,16 +411,21 @@ function renderRoom() {
   // Rows are rebuilt on every change; keep each row scrolled where it was.
   const scrolled = {};
   document.querySelectorAll('#room .tiles').forEach(row => {
-    scrolled[row.closest('[data-slot]')?.dataset.slot ?? 'scenes'] = row.scrollLeft;
+    scrolled[row.closest('[data-slot]')?.dataset.slot ?? row.id] = row.scrollLeft;
   });
   const restoreScroll = () => document.querySelectorAll('#room .tiles').forEach(row => {
-    row.scrollLeft = scrolled[row.closest('[data-slot]')?.dataset.slot ?? 'scenes'] ?? 0;
+    row.scrollLeft = scrolled[row.closest('[data-slot]')?.dataset.slot ?? row.id] ?? 0;
   });
 
-  $('#sceneTiles').innerHTML = Object.entries(SCENES)
+  const sceneTiles = art => Object.entries(SCENES)
+    .filter(([, s]) => !s.art === !art)
     .map(([id, s]) => tile(id, s.name, { on: id === state.scene, attrs: {} }))
     .join('');
-  $('#sceneBuy').innerHTML = pending && !pending.slot ? buyButton(pending.id) : '';
+  $('#sceneTiles').innerHTML = sceneTiles(false);
+  $('#artTiles').innerHTML = sceneTiles(true);
+  const scenePending = pending && !pending.slot ? pending.id : null;
+  $('#sceneBuy').innerHTML = scenePending && !SCENES[scenePending].art ? buyButton(scenePending) : '';
+  $('#artBuy').innerHTML = scenePending && SCENES[scenePending].art ? buyButton(scenePending) : '';
   $('#skyPicker').innerHTML = SKIES
     .map(([id, name]) => `<button data-sky="${id}" class="${id === state.settings.sky ? 'on' : ''}">${name}</button>`)
     .join('');
@@ -437,7 +442,7 @@ function renderRoom() {
       <div class="row-head"><h2>${slot.label}</h2>${pending?.slot === slot.id ? buyButton(pending.id) : ''}</div>
       <div class="tiles">${none}${choices.map(id => tile(id, ITEMS[id].name, { on: decor[slot.id] === id, attrs: { slot: slot.id } })).join('')}</div>
     </section>`;
-  }).join('');
+  }).join('') || '<p class="muted room-note">Paintings can’t be decorated. Pick a pixel scene to decorate.</p>';
   restoreScroll();
 }
 

@@ -180,6 +180,7 @@ main { flex: 1; position: relative; overflow: hidden; }
   height: auto;
   image-rendering: pixelated;
 }
+.scene canvas.smooth { image-rendering: auto; }
 /* Fades the bottom of the scene into the background above the timer. */
 .scene::after {
   content: "";
@@ -520,6 +521,9 @@ html:not(.desktop) .focus-ui { z-index: 1; }
 .tile.scene-tile .art { height: auto; }
 .tile.scene-tile img { width: 92px; border-radius: 6px; image-rendering: auto; }
 .tile.locked img { filter: grayscale(.5) brightness(.65); }
+.credit { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.credit a { color: inherit; }
+.room-note { margin-top: 18px; }
 
 .pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .pills button {

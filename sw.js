@@ -1,6 +1,8 @@
 // Network first so updates show up right away; the cache keeps the app working offline.
 
-const CACHE = 'nook-v12';
+const CACHE = 'nook-v13';
+// Paintings are big and never change, so they keep their own cache across app updates.
+const ART_CACHE = 'nook-art-v1';
 const SHELL = [
   './',
   'index.html',
@@ -31,6 +33,7 @@ const SHELL = [
   'js/scenes/classroom.js',
   'js/scenes/train.js',
   'js/scenes/rooftop.js',
+  'js/scenes/art.js',
   'icons/icon-180.png',
   'icons/icon-192.png',
   'icons/icon-512.png',
@@ -44,7 +47,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== ART_CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -59,6 +62,14 @@ const fresh = req => (req.mode === 'navigate'
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  // Paintings download the first time a scene shows them, then come from the cache.
+  if (new URL(req.url).pathname.includes('/art/')) {
+    e.respondWith(caches.open(ART_CACHE).then(c => c.match(req).then(hit => hit ?? fetch(req).then(res => {
+      if (res.ok) c.put(req, res.clone());
+      return res;
+    }))));
+    return;
+  }
   e.respondWith(
     fresh(req)
       .then(res => {

@@ -3,7 +3,7 @@
 A cozy pixel-art focus timer, built as a web app you add to your iPhone's Home Screen.
 Live at https://jeremychen24.github.io/nook/.
 
-- **Focus:** Pomodoro timer in a pixel scene (café, library, classroom, train, rooftop) that follows the time of day, with rain and ambient sounds.
+- **Focus:** Pomodoro timer in a pixel scene (café, library, classroom, train, rooftop) or a painted anime scene (classroom, reading room, coffee shop, train car, bus stop, railroad crossing) that follows the time of day, with rain and ambient sounds.
 - **Phone lock:** leaving Nook mid-session ends it; face-down mode; an "are you sure?" screen with Gentle, Firm or Strict quitting; a Guided Access guide with a spare key so nobody gets locked out.
 - **Plan:** weekly classes (including A/B days), tests and study hours become suggested sessions, sent to your calendar with alerts.
 - **Rewards:** coins for focus, a shop of decorations and scenes, a plant that wilts when you quit, badges.
@@ -31,7 +31,7 @@ Runs the tests in `tests/` with Node's built-in test runner (Node 20+): timer, r
 
 ## Deploy
 
-GitHub Pages serves the `main` branch, so pushing to `main` updates the live site in about a minute. Bump `CACHE` in `sw.js` and list any new files in its `SHELL` when adding files.
+GitHub Pages serves the `main` branch, so pushing to `main` updates the live site in about a minute. Bump `CACHE` in `sw.js` and list any new files in its `SHELL` when adding files. Paintings in `art/` aren't listed: each downloads the first time it's shown and stays in its own cache (`ART_CACHE`).
 
 ## Where things are
 
@@ -47,9 +47,14 @@ GitHub Pages serves the `main` branch, so pushing to `main` updates the live sit
 | `js/stats.js`, `js/charts.js` | Stats numbers and SVG charts |
 | `js/sounds.js` | Chime and generated ambient sounds |
 | `js/pixel.js`, `js/scenes/` | Pixel drawing toolkit and the scenes (each can draw wider for big screens) |
+| `js/scenes/art.js`, `art/` | Painted scenes: day, evening and night images, cropped to fit |
 | `dev/` | Phone preview and the link-preview poster |
 | `tools/make_icons.py` | Redraws `icons/` from a pixel map |
 
 ## Link preview
 
 `og.png` is a screenshot of `dev/poster.html?tod=dusk` at 1200×630.
+
+## Credits
+
+The painted scenes use backgrounds by [みんちりえ (Minchirie)](https://min-chi.material.jp/), used under their terms. They aren't Nook's own work and aren't offered for reuse; see [art/NOTICE.md](art/NOTICE.md). All pixel art is original to Nook.

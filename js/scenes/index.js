@@ -6,14 +6,19 @@ import * as library from './library.js';
 import * as classroom from './classroom.js';
 import * as train from './train.js';
 import * as rooftop from './rooftop.js';
+import { ART, artUrl, createArt } from './art.js';
 
 // price is in coins; slots and defaults say where decorations go and what's there to start.
+// Art scenes are paintings, so they have no spots for decorations.
 export const SCENES = {
   cafe: { name: 'Café', price: 0, slots: cafe.SLOTS, defaults: cafe.DEFAULTS, create: cafe.createCafe },
   library: { name: 'Library', price: 200, slots: library.SLOTS, defaults: library.DEFAULTS, create: library.createLibrary },
   classroom: { name: 'Classroom', price: 200, slots: classroom.SLOTS, defaults: classroom.DEFAULTS, create: classroom.createClassroom },
   train: { name: 'Train', price: 300, slots: train.SLOTS, defaults: train.DEFAULTS, create: train.createTrain },
   rooftop: { name: 'Rooftop', price: 300, slots: rooftop.SLOTS, defaults: rooftop.DEFAULTS, create: rooftop.createRooftop },
+  ...Object.fromEntries(Object.entries(ART).map(([id, a]) => [
+    id, { name: a.name, price: 150, art: true, slots: [], defaults: {}, create: width => createArt(id, width) },
+  ])),
 };
 const TIMES = ['dawn', 'day', 'sunset', 'dusk', 'night'];
 
@@ -48,6 +53,7 @@ export function mountScene(container, id, getEnv = () => ({}), width = 180) {
   const canvas = document.createElement('canvas');
   canvas.width = scene.W;
   canvas.height = scene.H;
+  if (scene.smooth) canvas.className = 'smooth';
   container.replaceChildren(canvas);
   painter = new Painter(canvas);
   const fps = matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 10;
@@ -63,6 +69,7 @@ export const resumeScene = () => anim?.start();
 
 // A still picture of a scene with its default decorations, as an image URL (for the shop).
 export function sceneThumbnail(id, sky = 'auto') {
+  if (SCENES[id].art) return artUrl(id, skyTime(sky), true);
   const s = SCENES[id].create();
   const canvas = makeCanvas(s.W, s.H);
   s.render(new Painter(canvas), { t: 0, tod: skyTime(sky), rain: false, decor: {}, wilted: false });
