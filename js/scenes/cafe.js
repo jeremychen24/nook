@@ -1,11 +1,11 @@
 // The café: a window counter looking out on a city street.
-// Everything is drawn in code on a 180×196 grid. The view outside follows the real time of day.
+// Everything is drawn in code on a 180×196 grid (wider on big screens, see createCafe). The view outside follows the real time of day.
 
 import { Painter, makeCanvas, sprite, seeded, mix, pick } from '../pixel.js';
 import { ITEMS } from '../decor.js';
-import { isDark, lightsOn, toner, paintSky, createSkyLife, paintDecor, animateDecor } from './outside.js';
+import { isDark, lightsOn, toner, paintSky, createSkyLife, paintDecor, animateDecor, sideSpots } from './outside.js';
 
-const W = 180;
+const BASE_W = 180;
 const H = 196;
 const GLASS = { x: 32, y: 30, w: 116, h: 112 }; // inside edge of the window frame
 const PANES = [[32, 30, 56, 24], [92, 30, 56, 24], [32, 58, 56, 84], [92, 58, 56, 84]];
@@ -45,7 +45,11 @@ const SHADE = sprite([
   '...yyyyy...',
 ], { d: '#7a4e22', b: '#c48a3c', h: '#e6b06a', y: '#fff1c4' });
 
-export function createCafe() {
+// W is the canvas width. The 180-wide café sits in the middle; extra brick wall either side
+// gets more lamps and framed pictures.
+export function createCafe(W = BASE_W) {
+  const OX = Math.round((W - BASE_W) / 2);
+  const sides = sideSpots(W, OX, BASE_W, 64);
   const sky = makeCanvas(W, H);
   const city = makeCanvas(W, H);
   const interior = makeCanvas(W, H);
@@ -56,15 +60,19 @@ export function createCafe() {
 
   const walkers = [spawnWalker(52), spawnWalker(118)];
   const cars = [];
-  const lamps = LAMPS.map(x => ({ x, dim: 0 }));
+  const lamps = [...LAMPS.map(x => x + OX), ...sides].map(x => ({ x, dim: 0 }));
 
   function render(p, env) {
     frame++;
     const tone = toner(env);
     const key = `${env.tod}:${env.rain}`;
     if (key !== outsideKey) {
-      paintSky(new Painter(sky), env, GLASS, SKY_SPOTS, 96);
-      paintCity(new Painter(city), env, tone);
+      const sp = new Painter(sky);
+      sp.clear();
+      sp.shifted(OX, () => paintSky(sp, env, GLASS, SKY_SPOTS, 96));
+      const cp = new Painter(city);
+      cp.clear();
+      cp.shifted(OX, () => paintCity(cp, env, tone));
       outsideKey = key;
     }
     const decor = { ...DEFAULTS, ...env.decor };
@@ -76,21 +84,24 @@ export function createCafe() {
 
     p.clear();
     p.image(sky, 0, 0);
-    life.stars(p, env, frame, (x, y) => y >= skylineTopAt(x));
-    life.clouds(p, env);
+    p.shifted(OX, () => {
+      life.stars(p, env, frame, (x, y) => y >= skylineTopAt(x));
+      life.clouds(p, env);
+    });
     p.image(city, 0, 0);
-    drawWalkers(p, env, tone);
-    drawCars(p, env, tone);
-    if (env.rain) life.rain(p);
+    p.shifted(OX, () => {
+      drawWalkers(p, env, tone);
+      drawCars(p, env, tone);
+      if (env.rain) life.rain(p);
+    });
     p.image(interior, 0, 0);
     drawLamps(p, env.tod === 'day' ? 0.55 : 1);
-    animateDecor(p, SLOTS, decor, ITEMS, env.t);
+    p.shifted(OX, () => animateDecor(p, SLOTS, decor, ITEMS, env.t));
   }
 
   // Outside
 
   function paintCity(p, env, tone) {
-    p.clear();
     const lights = lightsOn(env);
     const far = env.rain ? (isDark(env.tod) ? '#151a24' : '#6c7682') : FAR[env.tod];
     const rnd = seeded(42);
@@ -264,6 +275,31 @@ export function createCafe() {
     p.rect(0, 6, W, 1, '#3a2719');
     p.rect(0, 7, W, 1, '#140d09');
 
+    // Counter along the window
+    const grain = seeded(5);
+    p.rect(0, 146, W, 12, '#7a5236');
+    p.rect(0, 146, W, 1, '#9a6c47');
+    for (let i = 0; i < 16 * W / BASE_W; i++) {
+      p.rect(Math.floor(grain() * W), 148 + Math.floor(grain() * 9), 6 + Math.floor(grain() * 18), 1, '#6c4730');
+    }
+    p.rect(0, 158, W, 1, '#a87750');
+    p.rect(0, 159, W, 3, '#5a3a25');
+    p.rect(0, 162, W, H - 162, '#2c1e17');
+    p.rect(0, 162, W, 2, '#1c130e');
+    for (let x = 7; x < W; x += 15) p.rect(x, 164, 1, H - 164, '#22170f');
+
+    sides.forEach((x, i) => paintPicture(p, x, 58, i));
+    p.shifted(OX, () => paintMiddle(p, decor, wilted));
+
+    // Pendant lamps, including the extra ones on a wide wall
+    for (const { x } of lamps) {
+      p.rect(x, 7, 1, 21, '#120c08');
+      SHADE.draw(p, x - 5, 28);
+    }
+  }
+
+  // The window, its shelf and the decorations, in the 180-wide middle.
+  function paintMiddle(p, decor, wilted) {
     // Window frame, then the glass panes are cut out of it
     p.rect(GLASS.x - 4, GLASS.y - 4, GLASS.w + 8, GLASS.h + 8, '#24170f');
     p.rect(GLASS.x - 4, GLASS.y - 4, GLASS.w + 8, 1, '#4a3222');
@@ -281,32 +317,24 @@ export function createCafe() {
       }
     });
 
-    // Counter along the window
-    const grain = seeded(5);
-    p.rect(0, 146, W, 12, '#7a5236');
-    p.rect(0, 146, W, 1, '#9a6c47');
-    for (let i = 0; i < 16; i++) {
-      p.rect(Math.floor(grain() * W), 148 + Math.floor(grain() * 9), 6 + Math.floor(grain() * 18), 1, '#6c4730');
-    }
-    p.rect(0, 158, W, 1, '#a87750');
-    p.rect(0, 159, W, 3, '#5a3a25');
-    p.rect(0, 162, W, H - 162, '#2c1e17');
-    p.rect(0, 162, W, 2, '#1c130e');
-    for (let x = 7; x < W; x += 15) p.rect(x, 164, 1, H - 164, '#22170f');
-
     // Shelf on the right wall
     p.rect(154, 96, 24, 2, '#6b4830');
     p.rect(154, 98, 24, 1, '#2a1b12');
     p.rect(158, 99, 1, 3, '#1f150f');
     p.rect(173, 99, 1, 3, '#1f150f');
 
-    // Pendant lamps
-    for (const x of LAMPS) {
-      p.rect(x, 7, 1, 21, '#120c08');
-      SHADE.draw(p, x - 5, 28);
-    }
-
     paintDecor(p, SLOTS, decor, ITEMS, wilted);
+  }
+
+  // A small framed picture for the extra wall; `n` picks its colors.
+  function paintPicture(p, cx, y, n) {
+    const art = [['#7cb0e0', '#5f9a52'], ['#e98a5c', '#6b3f78'], ['#cfe2f1', '#3f6f8f'], ['#f2c08a', '#8a4a2f']][n % 4];
+    const x = cx - 9;
+    p.rect(x, y, 18, 22, '#3a2618');
+    p.rect(x + 1, y + 1, 16, 20, '#c9a35a');
+    p.rect(x + 3, y + 3, 12, 16, art[0]);
+    p.rect(x + 3, y + 12, 12, 7, art[1]);
+    p.disc(x + 11, y + 7, 2, '#fff1c4');
   }
 
   function paintBrick(p, x0, y0, w, h) {

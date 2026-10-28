@@ -36,10 +36,11 @@ export function timeOfDay(date = new Date()) {
 }
 
 // getEnv(sceneId) supplies what the scene shows from app state: { decor, wilted, info, sky, rain }.
-export function mountScene(container, id, getEnv = () => ({})) {
+// width is the canvas width in scene pixels: 180 on phones, wider to fill a wide screen.
+export function mountScene(container, id, getEnv = () => ({}), width = 180) {
   anim?.stop();
   const shown = SCENES[forcedScene ?? id] ? forcedScene ?? id : 'cafe';
-  scene = SCENES[shown].create();
+  scene = SCENES[shown].create(width);
   const canvas = document.createElement('canvas');
   canvas.width = scene.W;
   canvas.height = scene.H;

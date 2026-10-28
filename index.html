@@ -18,9 +18,12 @@
 <body data-phase="focus">
   <main>
     <section id="view-focus" class="view active">
-      <div class="scene" aria-hidden="true"></div>
-      <button class="sound-pill" id="soundPill" aria-label="Sound"><span id="soundIcon"></span><span id="soundName"></span></button>
-      <button class="coin-pill" id="coinPill" aria-label="Decorate"><svg class="coin" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#e0b84a" d="M2 0h4v1h1v1h1v4H7v1H6v1H2V7H1V6H0V2h1V1h1z"/><path fill="#f6d77a" d="M2 1h2v1H2zM1 2h1v2H1z"/><path fill="#a8842a" d="M3 3h2v2H3z"/></svg><span id="coinCount">0</span></button>
+      <!-- On phones the stage sits above the timer; on wide screens app.js moves it behind everything. -->
+      <div class="stage" id="stage">
+        <div class="scene" aria-hidden="true"></div>
+        <button class="sound-pill" id="soundPill" aria-label="Sound"><span id="soundIcon"></span><span id="soundName"></span></button>
+        <button class="coin-pill" id="coinPill" aria-label="Decorate"><svg class="coin" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#e0b84a" d="M2 0h4v1h1v1h1v4H7v1H6v1H2V7H1V6H0V2h1V1h1z"/><path fill="#f6d77a" d="M2 1h2v1H2zM1 2h1v2H1z"/><path fill="#a8842a" d="M3 3h2v2H3z"/></svg><span id="coinCount">0</span></button>
+      </div>
       <div class="focus-ui">
         <div class="phase-label" id="phaseLabel">Focus</div>
         <div class="time" id="time">25:00</div>

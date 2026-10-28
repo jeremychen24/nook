@@ -5,7 +5,7 @@ import { Painter, makeCanvas, seeded } from '../pixel.js';
 import { ITEMS } from '../decor.js';
 import { lightsOn, toner, paintSky, createSkyLife, paintDecor, animateDecor } from './outside.js';
 
-const W = 180;
+const BASE_W = 180;
 const H = 196;
 const CX = 90; // center of the arched window
 const ARCH_BASE = 58;
@@ -26,7 +26,9 @@ const GAPS = [[78, 13, 35], [102, 145, 167]];
 const SKY_SPOTS = { sunset: [72, 94], dawn: [108, 94], moon: [104, 40] };
 const BOOK_COLORS = ['#6b2a26', '#2e4a6b', '#3f5a36', '#7a5a2a', '#4a3a5e', '#8a6a3a', '#2f2f3a', '#5e3a2a', '#8f4a3a'];
 
-export function createLibrary() {
+// W is the canvas width. The 180-wide library sits in the middle; a wider wall gets more bookcases.
+export function createLibrary(W = BASE_W) {
+  const OX = Math.round((W - BASE_W) / 2);
   const sky = makeCanvas(W, H);
   const land = makeCanvas(W, H);
   const interior = makeCanvas(W, H);
@@ -42,10 +44,10 @@ export function createLibrary() {
     if (key !== outsideKey) {
       const skyPainter = new Painter(sky);
       skyPainter.clear();
-      paintSky(skyPainter, env, GLASS, SKY_SPOTS, 80);
+      skyPainter.shifted(OX, () => paintSky(skyPainter, env, GLASS, SKY_SPOTS, 80));
       const landPainter = new Painter(land);
       landPainter.clear();
-      paintPark(landPainter, env);
+      landPainter.shifted(OX, () => paintPark(landPainter, env));
       outsideKey = key;
     }
     const decor = { ...DEFAULTS, ...env.decor };
@@ -57,15 +59,19 @@ export function createLibrary() {
 
     p.clear();
     p.image(sky, 0, 0);
-    life.stars(p, env, frame, (x, y) => y > 92);
-    life.clouds(p, env);
+    p.shifted(OX, () => {
+      life.stars(p, env, frame, (x, y) => y > 92);
+      life.clouds(p, env);
+    });
     p.image(land, 0, 0);
-    if (env.rain) life.rain(p);
+    if (env.rain) p.shifted(OX, () => life.rain(p));
     p.image(interior, 0, 0);
-    drawLampLight(p, env.t);
-    drawPageTurn(p, env.t);
-    drawMotes(p);
-    animateDecor(p, SLOTS, decor, ITEMS, env.t);
+    p.shifted(OX, () => {
+      drawLampLight(p, env.t);
+      drawPageTurn(p, env.t);
+      drawMotes(p);
+      animateDecor(p, SLOTS, decor, ITEMS, env.t);
+    });
   }
 
   // Outside: a park with hills, two trees, a small house and a lamp post.
@@ -103,16 +109,39 @@ export function createLibrary() {
 
   // Inside
 
+  // Drawn back to front: wall, extra bookcases, the middle wall, the desk, then what's on it.
   function paintInterior(p, decor, wilted) {
     p.clear();
-    // Wood paneling
     p.rect(0, 0, W, 146, '#33201a');
+    p.rect(0, 0, W, 6, '#1c110c');
+    p.rect(0, 6, W, 1, '#3a2418');
+
+    for (let x = OX - 50, n = 3; x > -50; x -= 50, n++) paintShelf(p, x, x + 50, n, []);
+    for (let x = OX + BASE_W, n = 9; x < W; x += 50, n++) paintShelf(p, x, x + 50, n, []);
+
+    p.shifted(OX, () => paintWindowWall(p));
+
+    // Desk with a green leather top
+    p.rect(0, 146, W, 12, '#4e2a1c');
+    p.rect(10, 147, W - 20, 10, '#9c7a3c');
+    p.rect(11, 148, W - 22, 8, '#2f4a36');
+    p.rect(0, 158, W, 1, '#6e3d28');
+    p.rect(0, 159, W, 3, '#3a1f14');
+    p.rect(0, 162, W, H - 162, '#22130c');
+    for (let x = 4; x < W; x += 44) {
+      p.rect(x, 166, 40, 1, '#2e1a10');
+      p.rect(x, 166, 1, H - 166, '#2e1a10');
+    }
+
+    p.shifted(OX, () => paintDeskTop(p, decor, wilted));
+  }
+
+  // Paneling, the arched window and the two bookcases beside it, in the 180-wide middle.
+  function paintWindowWall(p) {
     for (let x = 52; x < 130; x += 13) {
       p.rect(x, 8, 1, 138, '#2a1913');
       p.rect(x + 1, 8, 1, 138, '#3d271e');
     }
-    p.rect(0, 0, W, 6, '#1c110c');
-    p.rect(0, 6, W, 1, '#3a2418');
 
     // Arched window: fill the frame shape, then cut the glass out of it
     archShape(p, RADIUS + 4, 4, (x, y, w) => p.rect(x, y, w, 1, '#24140d'));
@@ -135,19 +164,10 @@ export function createLibrary() {
 
     paintShelf(p, 0, 50, 1);
     paintShelf(p, 130, 180, 2);
+  }
 
-    // Desk with a green leather top
-    p.rect(0, 146, W, 12, '#4e2a1c');
-    p.rect(10, 147, 160, 10, '#9c7a3c');
-    p.rect(11, 148, 158, 8, '#2f4a36');
-    p.rect(0, 158, W, 1, '#6e3d28');
-    p.rect(0, 159, W, 3, '#3a1f14');
-    p.rect(0, 162, W, H - 162, '#22130c');
-    for (let x = 4; x < W; x += 44) {
-      p.rect(x, 166, 40, 1, '#2e1a10');
-      p.rect(x, 166, 1, H - 166, '#2e1a10');
-    }
-
+  // The lamp, the open book and the decorations on the desk.
+  function paintDeskTop(p, decor, wilted) {
     // Banker's lamp
     p.rect(LAMP_X - 6, 151, 12, 2, '#b88a3c');
     p.rect(LAMP_X - 5, 150, 10, 1, '#d6a85a');
@@ -182,7 +202,8 @@ export function createLibrary() {
     }
   }
 
-  function paintShelf(p, x0, x1, seed) {
+  // gaps: spaces left empty for shelf slots (only the middle bookcases have them).
+  function paintShelf(p, x0, x1, seed, gaps = GAPS) {
     const rnd = seeded(seed);
     p.rect(x0, 8, x1 - x0, 140, '#1f120c');
     p.rect(x0, 8, 3, 140, '#24140d');
@@ -192,7 +213,7 @@ export function createLibrary() {
       while (x < x1 - 4) {
         const w = 3 + Math.floor(rnd() * 3);
         if (x + w > x1 - 3) break;
-        const gap = GAPS.find(([gy, from, to]) => gy === board && x + w > from && x < to);
+        const gap = gaps.find(([gy, from, to]) => gy === board && x + w > from && x < to);
         if (gap) {
           x = gap[2];
           continue;

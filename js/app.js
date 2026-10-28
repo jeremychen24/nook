@@ -24,11 +24,34 @@ function show(view) {
   renderStats();
 }
 
-// The scene only animates when it can be seen.
+// The scene only animates when it can be seen: on wide screens it's always behind the panels.
 function syncSceneMotion() {
-  if ($('#view-focus').classList.contains('active') && lockView() === 'off') resumeScene();
+  const visible = isWide() || $('#view-focus').classList.contains('active');
+  if (visible && lockView() === 'off') resumeScene();
   else pauseScene();
 }
+
+// Layout: phones stack the scene above the timer; wide screens put it behind everything.
+const wideQuery = matchMedia('(min-width: 900px) and (min-aspect-ratio: 1/1)');
+const isWide = () => wideQuery.matches;
+
+// Scene pixels across: 180 on phones; on wide screens enough to fill the window without stretching.
+const sceneWidth = () => (isWide() ? Math.min(560, Math.max(180, Math.round((196 * innerWidth) / innerHeight))) : 180);
+
+function syncLayout() {
+  document.documentElement.classList.toggle('desktop', isWide());
+  if (isWide()) document.body.prepend($('#stage'));
+  else $('#view-focus').prepend($('#stage'));
+  syncScene();
+  syncSceneMotion();
+}
+
+wideQuery.addEventListener('change', syncLayout);
+let resizeTimer;
+addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(syncScene, 200);
+});
 
 $('.tabs').addEventListener('click', e => {
   const btn = e.target.closest('button[data-view]');
@@ -217,10 +240,13 @@ function sceneEnv(sceneId) {
   return { decor: state.decor[sceneId] ?? {}, wilted: state.wilted, info: { today, progress }, sky, rain: rain || sound === 'rain' };
 }
 
+// Redraws the scene when it changes, or when the window needs a different width.
 function syncScene() {
-  if (state.scene === mountedScene) return;
-  mountedScene = state.scene;
-  mountScene($('.scene'), state.scene, sceneEnv);
+  const width = sceneWidth();
+  const key = `${state.scene}:${width}`;
+  if (key === mountedScene) return;
+  mountedScene = key;
+  mountScene($('.scene'), state.scene, sceneEnv, width);
   syncSceneMotion();
 }
 
@@ -248,7 +274,7 @@ function tile(id, name, { on, attrs }) {
   const scale = item ? Math.max(1, Math.min(3, Math.floor(42 / Math.max(item.w, item.h)))) : 0;
   const size = item ? `width="${item.w * scale}" height="${item.h * scale}"` : '';
   const isPending = pending?.id === id && (!item || pending.slot === attrs.slot);
-  const classes = ['tile', item ? '' : 'scene', on ? 'on' : '', owned ? '' : 'locked', isPending ? 'pending' : ''].join(' ');
+  const classes = ['tile', item ? '' : 'scene-tile', on ? 'on' : '', owned ? '' : 'locked', isPending ? 'pending' : ''].join(' ');
   return `<button class="${classes}" data-pick="${id}">
     <span class="art"><img src="${thumb(id)}" alt="" ${size}></span>
     <span>${name}</span>
@@ -307,9 +333,10 @@ function openRoom() {
   pending = null;
   const sheet = $('#room');
   sheet.hidden = false;
-  // Stop the sheet at the bottom of the scene so the decorations stay in view.
+  // On phones, stop the sheet at the bottom of the scene so the decorations stay in view.
+  // (Wide screens show it in the side panel instead.)
   const sceneBottom = $('.scene').getBoundingClientRect().bottom;
-  $('.room-card').style.maxHeight = `${Math.max(innerHeight * 0.45, innerHeight - sceneBottom + 8)}px`;
+  $('.room-card').style.maxHeight = isWide() ? '' : `${Math.max(innerHeight * 0.45, innerHeight - sceneBottom + 8)}px`;
   renderRoom();
 }
 
@@ -562,6 +589,7 @@ timer.checkReturn(); // a session left running when the app was closed
 timer.tick();
 // Face-down sessions need a tap to turn the motion sensor back on, so they resume paused.
 if (state.settings.mode === 'facedown' && state.timer.phase === 'focus' && state.timer.status === 'running') timer.pause();
+syncLayout();
 renderAll();
 syncWakeLock();
 if (isIOS && !state.seenGuide) $('#guide').hidden = false;

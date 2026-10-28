@@ -4,9 +4,9 @@
 
 import { Painter, makeCanvas, seeded } from '../pixel.js';
 import { ITEMS } from '../decor.js';
-import { lightsOn, toner, paintSky, createSkyLife, paintDecor, animateDecor } from './outside.js';
+import { lightsOn, toner, paintSky, createSkyLife, paintDecor, animateDecor, sideSpots } from './outside.js';
 
-const W = 180;
+const BASE_W = 180;
 const H = 196;
 const GLASS = { x: 131, y: 29, w: 40, h: 88 };
 const PANES = [[131, 29, 19, 29], [152, 29, 19, 29], [131, 60, 19, 28], [152, 60, 19, 28], [131, 90, 19, 27], [152, 90, 19, 27]];
@@ -40,7 +40,11 @@ const WRITING = (() => {
 })();
 const WRITING_LENGTH = WRITING.reduce((sum, w) => sum + w.w, 0);
 
-export function createClassroom() {
+// W is the canvas width. The 180-wide classroom sits in the middle; a wider wall gets
+// more ceiling lights, a bulletin board, a map and a poster.
+export function createClassroom(W = BASE_W) {
+  const OX = Math.round((W - BASE_W) / 2);
+  const sides = sideSpots(W, OX, BASE_W, 72);
   const sky = makeCanvas(W, H);
   const yard = makeCanvas(W, H);
   const interior = makeCanvas(W, H);
@@ -56,10 +60,10 @@ export function createClassroom() {
     if (key !== outsideKey) {
       const skyPainter = new Painter(sky);
       skyPainter.clear();
-      paintSky(skyPainter, env, GLASS, SKY_SPOTS, 70);
+      skyPainter.shifted(OX, () => paintSky(skyPainter, env, GLASS, SKY_SPOTS, 70));
       const yardPainter = new Painter(yard);
       yardPainter.clear();
-      paintYard(yardPainter, env);
+      yardPainter.shifted(OX, () => paintYard(yardPainter, env));
       outsideKey = key;
     }
     const decor = { ...DEFAULTS, ...env.decor };
@@ -71,15 +75,19 @@ export function createClassroom() {
 
     p.clear();
     p.image(sky, 0, 0);
-    life.stars(p, env, frame, (x, y) => y > 86);
-    life.clouds(p, env);
+    p.shifted(OX, () => {
+      life.stars(p, env, frame, (x, y) => y > 86);
+      life.clouds(p, env);
+    });
     p.image(yard, 0, 0);
-    if (env.rain) life.rain(p);
+    if (env.rain) p.shifted(OX, () => life.rain(p));
     p.image(interior, 0, 0);
-    drawChalk(p, env.info ?? { today: 0, progress: 0 });
-    drawClock(p);
-    drawCeilingLight(p);
-    animateDecor(p, SLOTS, decor, ITEMS, env.t);
+    p.shifted(OX, () => {
+      drawChalk(p, env.info ?? { today: 0, progress: 0 });
+      drawClock(p);
+      drawCeilingLight(p);
+      animateDecor(p, SLOTS, decor, ITEMS, env.t);
+    });
   }
 
   // Outside: trees, a fence and a far hill.
@@ -109,15 +117,43 @@ export function createClassroom() {
       p.rect(0, 8, W, 6, '#000000');
       p.rect(0, 8, W, 3, '#000000');
     });
-    // Ceiling and light panel
     p.rect(0, 0, W, 8, '#2f332d');
-    p.rect(62, 2, 56, 5, '#9aa39a');
 
     // Wainscot
     p.rect(0, 104, W, 42, '#5c4632');
     p.rect(0, 104, W, 2, '#7a5e44');
     p.rect(0, 106, W, 1, '#3c2c1e');
     for (let x = 9; x < W; x += 18) p.rect(x, 107, 1, 39, '#4c3a29');
+
+    // Extra wall: a light panel over each spot, and a board, map or poster below it
+    sides.forEach((x, i) => {
+      p.rect(x - 22, 2, 44, 5, '#9aa39a');
+      p.rect(x - 21, 3, 42, 3, '#eef5ea');
+      [paintCorkBoard, paintMap, paintPoster][i % 3](p, x, 34);
+    });
+
+    p.shifted(OX, () => paintMiddle(p));
+
+    // Student desk
+    p.rect(0, 146, W, 12, '#b5895a');
+    p.rect(0, 146, W, 1, '#d0a374');
+    p.rect(0, 149, W, 1, '#9a7048');
+    const grain = seeded(9);
+    for (let i = 0; i < 12 * W / BASE_W; i++) {
+      p.rect(Math.floor(grain() * W), 151 + Math.floor(grain() * 6), 8 + Math.floor(grain() * 16), 1, '#a27a4e');
+    }
+    p.rect(0, 158, W, 3, '#8a6440');
+    p.rect(0, 161, W, H - 161, '#2a2721');
+    p.rect(0, 161, W, 2, '#1d1b17');
+    p.rect(20, 163, 2, H - 163, '#3a3a36');
+    p.rect(W - 22, 163, 2, H - 163, '#3a3a36');
+
+    p.shifted(OX, () => paintDecor(p, SLOTS, decor, ITEMS, wilted));
+  }
+
+  // The light panel, chalkboard, clock and window, in the 180-wide middle.
+  function paintMiddle(p) {
+    p.rect(62, 2, 56, 5, '#9aa39a');
 
     // Chalkboard with frame, faint erased chalk, and a tray
     p.rect(BOARD.x - 3, BOARD.y - 3, BOARD.w + 6, BOARD.h + 6, '#6b4a2e');
@@ -152,22 +188,46 @@ export function createClassroom() {
     });
     p.rect(126, 120, 50, 3, '#e6e2d6');
     p.rect(126, 123, 50, 1, '#4c4a40');
+  }
 
-    // Student desk
-    p.rect(0, 146, W, 12, '#b5895a');
-    p.rect(0, 146, W, 1, '#d0a374');
-    p.rect(0, 149, W, 1, '#9a7048');
-    const grain = seeded(9);
-    for (let i = 0; i < 12; i++) {
-      p.rect(Math.floor(grain() * W), 151 + Math.floor(grain() * 6), 8 + Math.floor(grain() * 16), 1, '#a27a4e');
+  // Wall pieces for a wide classroom, each centered on x with its top at y.
+
+  function paintCorkBoard(p, x, y) {
+    const rnd = seeded(x);
+    p.rect(x - 22, y, 44, 34, '#6b4a2e');
+    p.rect(x - 20, y + 2, 40, 30, '#b88a5a');
+    p.alpha(0.25, () => {
+      for (let i = 0; i < 30; i++) p.px(x - 20 + Math.floor(rnd() * 40), y + 2 + Math.floor(rnd() * 30), '#7a5a3a');
+    });
+    const notes = ['#f2e27a', '#9fd3e8', '#f4b6c2', '#c8e6a0', '#f2f2ea'];
+    for (let i = 0; i < 5; i++) {
+      const nx = x - 17 + (i % 3) * 12 + Math.floor(rnd() * 3);
+      const ny = y + 5 + Math.floor(i / 3) * 13 + Math.floor(rnd() * 3);
+      p.rect(nx, ny, 9, 9, notes[i]);
+      p.rect(nx + 1, ny + 3, 6, 1, '#00000022');
+      p.rect(nx + 1, ny + 5, 5, 1, '#00000022');
+      p.px(nx + 4, ny, '#c0392b');
     }
-    p.rect(0, 158, W, 3, '#8a6440');
-    p.rect(0, 161, W, H - 161, '#2a2721');
-    p.rect(0, 161, W, 2, '#1d1b17');
-    p.rect(20, 163, 2, H - 163, '#3a3a36');
-    p.rect(W - 22, 163, 2, H - 163, '#3a3a36');
+  }
 
-    paintDecor(p, SLOTS, decor, ITEMS, wilted);
+  function paintMap(p, x, y) {
+    p.rect(x - 24, y, 48, 30, '#e6e2d6');
+    p.rect(x - 22, y + 2, 44, 26, '#6fa7cf');
+    const land = [[-18, 6, 10, 7], [-14, 13, 6, 10], [-4, 5, 8, 6], [-2, 11, 7, 9], [6, 6, 14, 8], [12, 18, 7, 5]];
+    for (const [dx, dy, w, h] of land) p.rect(x + dx, y + dy, w, h, '#8cbf6a');
+    p.rect(x - 1, y - 3, 2, 3, '#3a3a36');
+  }
+
+  function paintPoster(p, x, y) {
+    const colors = ['#e89a9a', '#f2c08a', '#f2e27a', '#9fd3a0', '#9fc3e8', '#c8a8e0'];
+    p.rect(x - 20, y, 40, 30, '#f2efe4');
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (r === 0 && c > 0 && c < 7) continue; // the periodic table's gap
+        p.rect(x - 18 + c * 4, y + 6 + r * 5, 3, 4, colors[(r + c) % colors.length]);
+      }
+    }
+    p.rect(x - 14, y + 2, 28, 2, '#5a5a52');
   }
 
   function drawChalk(p, { today, progress }) {

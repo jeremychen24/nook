@@ -129,6 +129,15 @@ export function createSkyLife(glass, { starHeight = 34, seed = 11 } = {}) {
   };
 }
 
+// Scenes are drawn 180 wide; on a wide screen the canvas is wider and the extra wall on each
+// side gets details. This returns x centers along that extra wall, `pitch` apart.
+export function sideSpots(W, OX, coreW, pitch, margin = 14) {
+  const spots = [];
+  for (let x = OX - pitch / 2; x >= margin; x -= pitch) spots.push(Math.round(x));
+  for (let x = OX + coreW + pitch / 2; x <= W - margin; x += pitch) spots.push(Math.round(x));
+  return spots;
+}
+
 // Calls fn(item, x, y) for each decoration with its top-left corner
 // (slot x is the item's center, y its bottom).
 function eachDecor(slots, decor, items, fn) {

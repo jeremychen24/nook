@@ -52,6 +52,15 @@ export class Painter {
     }
   }
 
+  // Draws fn's shapes shifted right by dx: a scene's middle part on a wider canvas.
+  shifted(dx, fn) {
+    if (!dx) return fn();
+    this.g.save();
+    this.g.translate(dx, 0);
+    fn();
+    this.g.restore();
+  }
+
   alpha(a, fn) {
     const prev = this.g.globalAlpha;
     this.g.globalAlpha = prev * a;
