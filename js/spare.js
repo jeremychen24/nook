@@ -49,7 +49,7 @@ function renderWait() {
 function reveal() {
   clearInterval(ticker);
   $('#spareScreen').dataset.state = 'shown';
-  $('#spareText').textContent = 'To end Guided Access, triple-click the side button and enter this code.';
+  $('#spareText').textContent = 'To end Guided Access, triple-click the power button and enter this code.';
   $('#spareCode').textContent = state.spareKey.code;
   $('#spareClose').textContent = 'Done';
 }
