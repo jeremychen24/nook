@@ -893,4 +893,11 @@ document.addEventListener('visibilitychange', () => {
 });
 addEventListener('pagehide', () => timer.markLeft());
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+if ('serviceWorker' in navigator) {
+  // When a new version takes over, reload once so it shows right away, but never mid-session.
+  const hadOld = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadOld && state.timer.status === 'idle') location.reload();
+  });
+  navigator.serviceWorker.register('sw.js');
+}
