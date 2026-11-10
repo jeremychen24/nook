@@ -1,6 +1,6 @@
 // Network first so updates show up right away; the cache keeps the app working offline.
 
-const CACHE = 'nook-v13';
+const CACHE = 'nook-v14';
 // Paintings are big and never change, so they keep their own cache across app updates.
 const ART_CACHE = 'nook-art-v1';
 const SHELL = [
@@ -17,6 +17,7 @@ const SHELL = [
   'js/rewards.js',
   'js/stats.js',
   'js/charts.js',
+  'js/timelog.js',
   'js/exams.js',
   'js/plan.js',
   'js/planview.js',

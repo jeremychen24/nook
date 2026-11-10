@@ -913,3 +913,8 @@ select[hidden] { display: none; }
   transition: opacity .25s, transform .25s;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Timelapse (from Lapse): a color key next to each label, so focus and timelapse never rely on color alone. */
+.key { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 2px; vertical-align: 1px; }
+.key.focus { background: #bf8540; }
+.key.lapse { background: #3987e5; }

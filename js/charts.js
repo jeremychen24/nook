@@ -35,7 +35,9 @@ function table(caption, head, rows) {
 }
 
 // Minutes per day for the last seven days; today and the best day get their values on the cap.
-export function weekChart(days) {
+// Focus is amber; timelapse time (from Lapse) passes its own blue, checked against amber for this surface.
+export const LAPSE_BAR = '#3987e5';
+export function weekChart(days, { color = BAR, what = 'Focus' } = {}) {
   const H = 156;
   const left = 32;
   const top = 18;
@@ -55,15 +57,15 @@ export function weekChart(days) {
   days.forEach((d, i) => {
     const cx = left + band * (i + 0.5);
     const isToday = i === days.length - 1;
-    if (d.minutes > 0) svg += column(cx - 11, y(d.minutes), 22, base, BAR);
+    if (d.minutes > 0) svg += column(cx - 11, y(d.minutes), 22, base, color);
     if (d.minutes > 0 && (isToday || i === best)) {
       svg += `<text x="${cx}" y="${y(d.minutes) - 5}" text-anchor="middle" font-size="10" fill="${INK}">${fmtMinutes(d.minutes)}</text>`;
     }
     svg += `<text x="${cx}" y="${base + 16}" text-anchor="middle" font-size="11" fill="${isToday ? INK : MUTED}">${isToday ? 'Today' : d.label}</text>`;
     svg += `<rect x="${cx - band / 2}" y="${top - 10}" width="${band}" height="${base - top + 10}" fill="transparent" data-tip="${isToday ? 'Today' : d.label} · ${fmtMinutes(d.minutes)}"/>`;
   });
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Focus minutes per day, last 7 days">${svg}</svg>${
-    table('Focus per day, last 7 days', ['Day', 'Focus'], days.map((d, i) => [i === days.length - 1 ? 'Today' : d.label, fmtMinutes(d.minutes)]))}`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${what} minutes per day, last 7 days">${svg}</svg>${
+    table(`${what} per day, last 7 days`, ['Day', what], days.map((d, i) => [i === days.length - 1 ? 'Today' : d.label, fmtMinutes(d.minutes)]))}`;
 }
 
 // Horizontal bars, longest first, value at each bar's tip. rows: { name, minutes, note? };

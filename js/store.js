@@ -26,6 +26,8 @@ export function defaults() {
     backupNudgedAt: 0, // when we last reminded about backups
     lastReview: 0, // start of the week whose review was last shown
     notes: [], // thoughts parked during focus: { id, text, at }
+    lapse: [], // timelapses pasted in from the Lapse app, see timelog.js; never earn coins or badges
+    lapseSyncedAt: 0, // when they were last pasted
     exams: [], // { id, name, cls, date: 'YYYY-MM-DD', goal, createdAt }
     schedule: [], // weekly classes and commitments: { id, name, days: [0–6, Sun = 0], start: 'HH:MM', end: 'HH:MM', ab: '' | 'A' | 'B' }
     plan: {
@@ -48,6 +50,7 @@ function normalize(data) {
     timer: { ...base.timer, ...data.timer },
     tasks: Array.isArray(data.tasks) ? data.tasks : [],
     sessions: Array.isArray(data.sessions) ? data.sessions : [],
+    lapse: Array.isArray(data.lapse) ? data.lapse : [],
     plan: {
       ...base.plan,
       ...data.plan,

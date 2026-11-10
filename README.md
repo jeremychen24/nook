@@ -8,6 +8,7 @@ Live at https://jeremychen24.github.io/nook/.
 - **Plan:** weekly classes (including A/B days), tests and study hours become suggested sessions, sent to your calendar with alerts.
 - **Rewards:** coins for focus, a shop of decorations and scenes, a plant that wilts when you quit, badges.
 - **Stats:** today, week, streak, month heatmap, by class, by task, time of day, and a weekly review.
+- **Timelapse:** paste your stats from [Lapse](https://jeremychen24.github.io/lapse/) (its Stats → Send to Nook, then Stats → Paste from Lapse here). It shows next to focus time but never earns coins or badges.
 
 Everything is saved on the device (localStorage). Settings › Backup exports and imports a JSON file.
 
@@ -45,6 +46,7 @@ GitHub Pages serves the `main` branch, so pushing to `main` updates the live sit
 | `js/plan.js`, `js/planview.js`, `js/ics.js`, `js/exams.js` | Study planner, Plan tab, calendar file, test countdown |
 | `js/rewards.js`, `js/decor.js`, `js/badges.js` | Coins and shop, decorations, badges |
 | `js/stats.js`, `js/charts.js` | Stats numbers and SVG charts |
+| `js/timelog.js` | Timelapse stats and the Lapse sync code (shared word-for-word with Lapse) |
 | `js/sounds.js` | Chime and generated ambient sounds |
 | `js/pixel.js`, `js/scenes/` | Pixel drawing toolkit and the scenes (each can draw wider for big screens) |
 | `js/scenes/art.js`, `art/` | Painted scenes: day, evening and night images, cropped to fit |

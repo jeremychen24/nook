@@ -4,7 +4,8 @@ import { renderTasks, bindTasks, activeTask, addNote, removeNote, noteToTask } f
 import { unlock, chime, playAmbient, setVolume } from './sounds.js';
 import { computeStats, fmtMinutes, fmtHour, monthGrid, taskTotals, weekReview, weekStart } from './stats.js';
 import { BADGES, BADGE_COINS, checkBadges } from './badges.js';
-import { weekChart, barList, hourChart, monthHeatmap } from './charts.js';
+import { weekChart, barList, hourChart, monthHeatmap, LAPSE_BAR } from './charts.js';
+import { computeStats as lapseStats, parseSync, mergeLog } from './timelog.js';
 import { SCENES, mountScene, pauseScene, resumeScene, sceneThumbnail } from './scenes/index.js';
 import { lockView, armFaceDown, release, syncWakeLock, onLockChange, canStayAwake } from './lock.js';
 import { award, wilt, water, buy, place, owns, priceOf, decorFor, switchScene, WATER_COST } from './rewards.js';
@@ -642,7 +643,56 @@ function renderStats() {
       <b>${b.name}</b>
       <small>${b.hint}</small>
     </div>`).join('');
+  renderLapse(s);
 }
+
+// Timelapse time pasted in from the Lapse app. It sits beside focus time but never earns coins or badges.
+
+function ago(ms) {
+  const min = Math.round((Date.now() - ms) / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min} min ago`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${h} h ago`;
+  const d = Math.round(h / 24);
+  return `${d} ${d === 1 ? 'day' : 'days'} ago`;
+}
+
+function renderLapse(focus) {
+  const el = $('#lapseStats');
+  if (!state.lapse.length) {
+    el.innerHTML = '<p class="muted">Record a timelapse in Lapse, tap Send to Nook in its Stats, then paste it here.</p>';
+    return;
+  }
+  const t = lapseStats(state.lapse);
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat"><span><i class="key focus"></i>Focus · 7 days</span><b>${fmtMinutes(focus.weekMin)}</b></div>
+      <div class="stat"><span><i class="key lapse"></i>Timelapse · 7 days</span><b>${fmtMinutes(t.weekMin)}</b></div>
+      <div class="stat"><span>Timelapses</span><b>${t.sessions}</b></div>
+      <div class="stat"><span>Recording streak</span><b>${t.streak} ${t.streak === 1 ? 'day' : 'days'}</b></div>
+    </div>
+    <h2>Timelapse · last 7 days</h2>
+    <div class="chart">${weekChart(t.days, { color: LAPSE_BAR, what: 'Timelapse' })}<div class="chart-tip" hidden></div></div>
+    <p class="caption">${t.bestHour === null ? '' : `You record the most around ${fmtHour(t.bestHour)} · `}Pasted ${ago(state.lapseSyncedAt)}</p>`;
+}
+
+$('#lapsePaste').addEventListener('click', async () => {
+  let text = '';
+  try { text = await navigator.clipboard.readText(); } catch {}
+  if (!parseSync(text)) text = prompt('Paste the code from Lapse (Stats → Send to Nook)') ?? '';
+  if (!text.trim()) return;
+  const incoming = parseSync(text);
+  if (!incoming) {
+    toast('That isn’t a Lapse code. In Lapse, tap Send to Nook first.', 3200);
+    return;
+  }
+  const { list, added, updated } = mergeLog(state.lapse, incoming);
+  update(s => { s.lapse = list; s.lapseSyncedAt = Date.now(); });
+  renderStats();
+  const n = (k, word) => `${k} ${word}${k === 1 ? '' : 's'}`;
+  toast(added ? `Added ${n(added, 'timelapse')}` : updated ? `Updated ${n(updated, 'timelapse')}` : 'Already up to date');
+});
 
 $('#statCharts').addEventListener('click', e => {
   const btn = e.target.closest('[data-month]');
@@ -667,6 +717,8 @@ function showTip(e) {
 }
 $('#statCharts').addEventListener('pointerover', showTip);
 $('#statCharts').addEventListener('pointerdown', showTip);
+$('#lapseStats').addEventListener('pointerover', showTip);
+$('#lapseStats').addEventListener('pointerdown', showTip);
 $('#statCharts').addEventListener('pointerleave', () => document.querySelectorAll('.chart-tip').forEach(t => { t.hidden = true; }));
 
 // Weekly review: a look back at last week, shown on the first visit of a new week.
